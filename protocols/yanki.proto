@@ -1,0 +1,43 @@
+syntax = "proto3";
+
+package yanki;
+
+// Tablo 1: Users (Kullanıcılar)
+message User {
+  string user_id = 1;       // Cihazın benzersiz kimlik numarası (UUID) [cite: 9]
+  string user_name = 2;     // Kullanıcının profil ismi [cite: 9]
+  bytes public_key = 3;     // Mesaj doğrulaması için Ed25519 anahtarı [cite: 9]
+  int64 last_seen = 4;      // Cihazın ağdaki son görülme zamanı [cite: 9]
+  bool is_trusted = 5;      // Güvenilirlik durumunu belirten bayrak [cite: 9]
+}
+
+message Message {
+  string msg_id = 1;        // Mesajın benzersiz kimliği [cite: 12]
+  string sender_id = 2;     // Mesajı gönderen kullanıcının ID'si [cite: 12]
+  string receiver_id = 3;   // Alıcı ID'si (veya "BROADCAST") [cite: 12]
+  bytes content_blob = 4;   // Şifrelenmiş mesaj içeriği [cite: 12]
+  int64 timestamp = 5;      // Mesajın oluşturulma zamanı [cite: 12]
+  int32 status = 6;         // Mesaj durumu (0:Bekliyor, 1:İletildi) [cite: 12]
+  bool is_synced = 7;       // Bulut sunucusuna yedeklenme durumu [cite: 12]
+}
+
+message EmergencySignal {
+  int32 signal_id = 1;      // Otomatik artan kayıt numarası [cite: 15]
+  string user_id = 2;       // Sinyali oluşturan kullanıcının ID'si [cite: 15]
+  double latitude = 3;      // Konum: Enlem bilgisi [cite: 15]
+  double longitude = 4;     // Konum: Boylam bilgisi [cite: 15]
+  string emergency_type = 5;// Acil durum kategorisi (Enkaz, Tıbbi vb.) [cite: 15]
+  int32 battery_level = 6;  // Cihazın güncel şarj seviyesi [cite: 15]
+}
+
+
+service YankiSyncService {
+  rpc SyncMessages (stream Message) returns (SyncResponse);
+  rpc SendEmergencySignal (EmergencySignal) returns (SyncResponse);
+  rpc RegisterUser (User) returns (SyncResponse);
+}
+
+message SyncResponse {
+  bool success = 1;
+  string message = 2;
+}
