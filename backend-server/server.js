@@ -1,7 +1,7 @@
 const grpc = require('@grpc/grpc-js');
 const protoLoader = require('@grpc/proto-loader');
 const path = require('path');
-const { db } = require('./firebase-config'); // Firestore bağlantımızı dahil ettik
+const { db } = require('./firebase-config');
 const admin = require('firebase-admin');
 
 const PROTO_PATH = path.join(__dirname, '../protocols/yanki.proto');
@@ -12,74 +12,78 @@ const packageDefinition = protoLoader.loadSync(PROTO_PATH, {
 
 const yankiProto = grpc.loadPackageDefinition(packageDefinition).yanki;
 
-// --- gRPC Servis Fonksiyonları (Firebase Entegreli) ---
+// --- gRPC Servis Fonksiyonları ---
 
 async function RegisterUser(call, callback) {
     const user = call.request;
-    console.log(`[LOG] Yeni Kullanıcı Kaydı: ${user.user_name}`);
+    console.log(`[USER] Kayıt Talebi: ${user.user_name} (${user.user_id})`);
 
     try {
-        // users koleksiyonuna user_id'yi doküman ID'si yaparak kaydediyoruz
         await db.collection('users').doc(user.user_id).set({
             user_name: user.user_name,
-            last_seen: user.last_seen,
-            is_trusted: user.is_trusted,
-            // public_key'i byte buffer olarak alıyoruz, Firestore bunu handle edebilir
-        });
-        callback(null, { success: true, message: "Kullanıcı buluta başarıyla kaydedildi." });
+            last_seen: admin.firestore.Timestamp.fromMillis(parseInt(user.last_seen)),
+            is_trusted: user.is_trusted || false,
+            public_key: user.public_key, // Byte dizisi olarak saklanır
+            updated_at: admin.firestore.FieldValue.serverTimestamp()
+        }, { merge: true }); // Kullanıcı varsa bilgilerini güncelle (last_seen vb.)
+
+        callback(null, { success: true, message: "Kullanıcı başarıyla kaydedildi/güncellendi." });
     } catch (error) {
         console.error("Kayıt Hatası:", error);
-        callback(null, { success: false, message: "Kayıt başarısız oldu." });
+        callback(null, { success: false, message: "Sunucu hatası: Kayıt yapılamadı." });
     }
 }
 
 async function SendEmergencySignal(call, callback) {
     const signal = call.request;
-    console.log(`[ALERT] SOS Sinyali! Tür: ${signal.emergency_type}`);
+    console.log(`[ALERT] SOS! Tür: ${signal.emergency_type} - Pil: %${signal.battery_level}`);
 
     try {
-        // Acil durumlar otomatik ID ile kaydedilsin
-        await db.collection('emergency_signals').add({
+        // KRİTİK: .add() yerine .doc(signal_id).set() kullanıyoruz.
+        // Neden? Çünkü aynı SOS sinyali farklı telefonlardan (mesh yoluyla) sunucuya ulaşabilir.
+        // Bu sayede mükerrer kayıt oluşmaz, sadece mevcut kayıt güncellenir.
+        await db.collection('emergency_signals').doc(signal.signal_id).set({
             user_id: signal.user_id,
-            latitude: signal.latitude,
-            longitude: signal.longitude,
+            location: new admin.firestore.GeoPoint(signal.latitude, signal.longitude),
             emergency_type: signal.emergency_type,
             battery_level: signal.battery_level,
-            timestamp: admin.firestore.FieldValue.serverTimestamp() // Buluta ulaştığı an
+            mesh_hops: signal.hop_count, // Analiz için kaç zıplamada geldiği
+            created_at: admin.firestore.Timestamp.fromMillis(parseInt(signal.timestamp)),
+            synced_at: admin.firestore.FieldValue.serverTimestamp()
         });
-        callback(null, { success: true, message: "SOS sinyali merkeze ulaştı!" });
+
+        callback(null, { success: true, message: "Acil durum sinyali Firebase'e işlendi." });
     } catch (error) {
         console.error("SOS Kayıt Hatası:", error);
-        callback(null, { success: false, message: "SOS iletilemedi." });
+        callback(null, { success: false, message: "SOS sinyali buluta yazılamadı." });
     }
 }
 
-function SyncMessages(call, callback) {
-    console.log("[LOG] Mesaj senkronizasyon akışı (stream) başladı...");
+// C:/Users/bedir/AndroidStudioProjects/YANKI-Decentralized-Mesh-Network/backend-server/server.js
 
-    call.on('data', async function(message) {
-        console.log(`[SYNC] Mesaj alındı: ${message.msg_id}`);
-        try {
-            await db.collection('messages').doc(message.msg_id).set({
-                sender_id: message.sender_id,
-                receiver_id: message.receiver_id,
-                timestamp: message.timestamp,
-                status: message.status,
-                is_synced: true // Artık bulutta olduğu için true yapıyoruz
-                // content_blob şifreli veriyi doğrudan kaydediyoruz
-            });
-        } catch (error) {
-            console.error(`Mesaj (${message.msg_id}) kaydedilemedi:`, error);
-        }
-    });
+// Change the function to handle a single call instead of events
+async function SyncMessages(call, callback) {
+    const message = call.request;
+    console.log(`[SYNC] Mesaj alınıyor: ${message.msg_id}`);
 
-    call.on('end', function() {
-        console.log("[LOG] Mesaj senkronizasyon akışı tamamlandı.");
-        callback(null, { success: true, message: "Tüm çevrimdışı mesajlar senkronize edildi." });
-    });
+    try {
+        await db.collection('messages').doc(message.msg_id).set({
+            sender_id: message.sender_id,
+            receiver_id: message.receiver_id,
+            content_blob: message.content_blob,
+            original_timestamp: admin.firestore.Timestamp.fromMillis(parseInt(message.timestamp)),
+            cloud_timestamp: admin.firestore.FieldValue.serverTimestamp(),
+            status: message.status,
+            is_synced: true
+        });
+        callback(null, { success: true, message: "Mesaj senkronize edildi." });
+    } catch (error) {
+        console.error(`Mesaj (${message.msg_id}) hatası:`, error);
+        callback(null, { success: false, message: error.message });
+    }
 }
 
-// --- Sunucuyu Başlatma ---
+// --- Sunucu Başlatma ---
 function main() {
     const server = new grpc.Server();
     server.addService(yankiProto.YankiSyncService.service, {
@@ -88,13 +92,14 @@ function main() {
         SyncMessages: SyncMessages
     });
 
-    const PORT = '0.0.0.0:50051';
-    server.bindAsync(PORT, grpc.ServerCredentials.createInsecure(), (error, port) => {
+    const HOST_PORT = '0.0.0.0:50051';
+    server.bindAsync(HOST_PORT, grpc.ServerCredentials.createInsecure(), (error, port) => {
         if (error) {
-            console.error("Sunucu başlatılamadı:", error);
+            console.error("Sunucu hatası:", error);
             return;
         }
-        console.log(`YANKI Backend gRPC & Firebase Sunucusu ${port} portunda dinleniyor...`);
+        console.log(`🚀 YANKI Kontrol Merkezi Aktif!`);
+        console.log(`📡 Adres: ${HOST_PORT}`);
     });
 }
 

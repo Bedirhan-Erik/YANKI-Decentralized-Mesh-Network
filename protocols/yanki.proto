@@ -2,37 +2,49 @@ syntax = "proto3";
 
 package yanki;
 
+option java_package = "com.bedir.yanki";
+option java_outer_classname = "Yanki";
+
 // Tablo 1: Users (Kullanıcılar)
 message User {
-  string user_id = 1;       // Cihazın benzersiz kimlik numarası (UUID) [cite: 9]
-  string user_name = 2;     // Kullanıcının profil ismi [cite: 9]
-  bytes public_key = 3;     // Mesaj doğrulaması için Ed25519 anahtarı [cite: 9]
-  int64 last_seen = 4;      // Cihazın ağdaki son görülme zamanı [cite: 9]
-  bool is_trusted = 5;      // Güvenilirlik durumunu belirten bayrak [cite: 9]
+  string user_id = 1;
+  string user_name = 2;
+  bytes public_key = 3;
+  int64 last_seen = 4;
+  bool is_trusted = 5;
 }
 
 message Message {
-  string msg_id = 1;        // Mesajın benzersiz kimliği [cite: 12]
-  string sender_id = 2;     // Mesajı gönderen kullanıcının ID'si [cite: 12]
-  string receiver_id = 3;   // Alıcı ID'si (veya "BROADCAST") [cite: 12]
-  bytes content_blob = 4;   // Şifrelenmiş mesaj içeriği [cite: 12]
-  int64 timestamp = 5;      // Mesajın oluşturulma zamanı [cite: 12]
-  int32 status = 6;         // Mesaj durumu (0:Bekliyor, 1:İletildi) [cite: 12]
-  bool is_synced = 7;       // Bulut sunucusuna yedeklenme durumu [cite: 12]
+  string msg_id = 1;
+  string sender_id = 2;
+  string receiver_id = 3;
+  bytes content_blob = 4;
+  int64 timestamp = 5;
+  int32 status = 6;
+  bool is_synced = 7;
+  int32 ttl = 8;
+  bytes signature = 9;
 }
 
 message EmergencySignal {
-  int32 signal_id = 1;      // Otomatik artan kayıt numarası [cite: 15]
-  string user_id = 2;       // Sinyali oluşturan kullanıcının ID'si [cite: 15]
-  double latitude = 3;      // Konum: Enlem bilgisi [cite: 15]
-  double longitude = 4;     // Konum: Boylam bilgisi [cite: 15]
-  string emergency_type = 5;// Acil durum kategorisi (Enkaz, Tıbbi vb.) [cite: 15]
-  int32 battery_level = 6;  // Cihazın güncel şarj seviyesi [cite: 15]
+  string signal_id = 1; // String formatına çekildi (UUID)
+  string user_id = 2;
+  double latitude = 3;
+  double longitude = 4;
+  string emergency_type = 5;
+  int32 battery_level = 6;
+  int32 hop_count = 7;
+  int64 timestamp = 8;
 }
 
+// Wi-Fi Aware ve Mesh için toplu paket taşıyıcı
+message MeshPayload {
+  repeated Message messages = 1;
+  repeated EmergencySignal signals = 2;
+}
 
 service YankiSyncService {
-  rpc SyncMessages (stream Message) returns (SyncResponse);
+  rpc SyncMessages (Message) returns (SyncResponse);
   rpc SendEmergencySignal (EmergencySignal) returns (SyncResponse);
   rpc RegisterUser (User) returns (SyncResponse);
 }

@@ -1,5 +1,11 @@
+package com.bedir.yanki.di
+
 import android.content.Context
 import androidx.room.Room
+import com.bedir.yanki.data.local.YankiDatabase
+import com.bedir.yanki.data.local.dao.UserDao
+import com.bedir.yanki.data.local.dao.MessageDao
+import com.bedir.yanki.data.local.dao.EmergencySignalDao
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
