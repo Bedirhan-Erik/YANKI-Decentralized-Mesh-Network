@@ -25,8 +25,7 @@ object DatabaseModule {
             YankiDatabase::class.java,
             "yanki_local_db"
         )
-            // Şimdilik veritabanı şeması değiştiğinde eskisini silip yenisini açması için fallback ekleyebiliriz
-            .fallbackToDestructiveMigration()
+            .fallbackToDestructiveMigration(true)
             .build()
     }
 

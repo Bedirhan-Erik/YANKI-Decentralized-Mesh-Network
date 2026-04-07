@@ -64,22 +64,82 @@ async function SendEmergencySignal(call, callback) {
 // Change the function to handle a single call instead of events
 async function SyncMessages(call, callback) {
     const message = call.request;
-    console.log(`[SYNC] Mesaj alınıyor: ${message.msg_id}`);
+    console.log(`[SYNC] Mesaj alınıyor: ${message.msg_id} - Kimden: ${message.sender_id}`);
 
     try {
+        // gRPC bytes -> Buffer -> String dönüşümü (Eğer içerik metinse)
+        let contentStr = "";
+        if (message.content_blob) {
+            contentStr = Buffer.from(message.content_blob).toString('utf8');
+        }
+
         await db.collection('messages').doc(message.msg_id).set({
             sender_id: message.sender_id,
             receiver_id: message.receiver_id,
-            content_blob: message.content_blob,
+            content_text: contentStr, // Metin olarak sakla (Arama yapılabilir)
+            content_raw: message.content_blob, // Orijinal byte'ları da sakla
             original_timestamp: admin.firestore.Timestamp.fromMillis(parseInt(message.timestamp)),
             cloud_timestamp: admin.firestore.FieldValue.serverTimestamp(),
             status: message.status,
-            is_synced: true
+            is_synced: true,
+            ttl: message.ttl || 7
         });
-        callback(null, { success: true, message: "Mesaj senkronize edildi." });
+
+        console.log(`✅ Mesaj Firestore'a yazıldı: ${message.msg_id}`);
+        callback(null, { success: true, message: "Mesaj başarıyla senkronize edildi." });
     } catch (error) {
-        console.error(`Mesaj (${message.msg_id}) hatası:`, error);
+        console.error(`❌ Mesaj (${message.msg_id}) hatası:`, error);
         callback(null, { success: false, message: error.message });
+    }
+}
+
+async function GetNewData(call, callback) {
+    const { user_id, last_sync_time } = call.request;
+    console.log(`[PULL] Veri talebi: ${user_id} - Son Senk: ${last_sync_time}`);
+
+    try {
+        // Son senkronizasyondan sonra eklenen mesajları getir
+        const messagesSnapshot = await db.collection('messages')
+            .where('original_timestamp', '>', admin.firestore.Timestamp.fromMillis(parseInt(last_sync_time)))
+            .limit(50)
+            .get();
+
+        const signalsSnapshot = await db.collection('emergency_signals')
+            .where('created_at', '>', admin.firestore.Timestamp.fromMillis(parseInt(last_sync_time)))
+            .limit(10)
+            .get();
+
+        const messages = messagesSnapshot.docs.map(doc => {
+            const data = doc.data();
+            return {
+                msg_id: doc.id,
+                sender_id: data.sender_id,
+                receiver_id: data.receiver_id,
+                content_blob: data.content_raw ? data.content_raw.buffer : Buffer.from(data.content_text),
+                timestamp: data.original_timestamp.toMillis().toString(),
+                status: data.status,
+                ttl: data.ttl
+            };
+        });
+
+        const signals = signalsSnapshot.docs.map(doc => {
+            const data = doc.data();
+            return {
+                signal_id: doc.id,
+                user_id: data.user_id,
+                latitude: data.location.latitude,
+                longitude: data.location.longitude,
+                emergency_type: data.emergency_type,
+                battery_level: data.battery_level,
+                hop_count: data.mesh_hops,
+                timestamp: data.created_at.toMillis().toString()
+            };
+        });
+
+        callback(null, { messages, signals });
+    } catch (error) {
+        console.error("PULL Hatası:", error);
+        callback(null, { messages: [], signals: [] });
     }
 }
 
@@ -89,7 +149,8 @@ function main() {
     server.addService(yankiProto.YankiSyncService.service, {
         RegisterUser: RegisterUser,
         SendEmergencySignal: SendEmergencySignal,
-        SyncMessages: SyncMessages
+        SyncMessages: SyncMessages,
+        GetNewData: GetNewData
     });
 
     const HOST_PORT = '0.0.0.0:50051';

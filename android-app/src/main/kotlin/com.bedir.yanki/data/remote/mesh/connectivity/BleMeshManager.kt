@@ -25,10 +25,19 @@ class BleMeshManager @Inject constructor(
         val YANKI_CHARACTERISTIC_UUID: UUID = UUID.fromString("00002A37-0000-1000-8000-00805f9b34fb")
     }
 
-    private val scanner = bluetoothAdapter?.bluetoothLeScanner
-    private val advertiser = bluetoothAdapter?.bluetoothLeAdvertiser
+    private val scanner get() = bluetoothAdapter?.bluetoothLeScanner
+    private val advertiser get() = bluetoothAdapter?.bluetoothLeAdvertiser
     private var scanCallback: ScanCallback? = null
     private var gattServer: BluetoothGattServer? = null
+    private var onDataReceived: ((ByteArray) -> Unit)? = null
+
+    fun setOnDataReceivedListener(listener: (ByteArray) -> Unit) {
+        onDataReceived = listener
+    }
+
+    // Aynı komşuyu sürekli işlememek için throttle listesi (MAC -> Son Görülme Zamanı)
+    private val recentlySeenNeighbors = mutableMapOf<String, Long>()
+    private val RECENTLY_SEEN_THRESHOLD = 10000L // 10 saniye
 
     private fun hasBluetoothPermission(): Boolean {
         return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
@@ -40,11 +49,19 @@ class BleMeshManager @Inject constructor(
         }
     }
 
-    // 1. ADVERTISING: "Ben Buradayım" Yayını Yap
+    private var isScanning = false
+    private var isAdvertising = false
+    private var isGattServerRunning = false
+
     @SuppressLint("MissingPermission")
     fun startAdvertising(myUserId: String) {
-        if (!hasBluetoothPermission()) {
-            Log.e("YANKI_MESH", "Bluetooth izinleri eksik, yayın başlatılamadı.")
+        if (!hasBluetoothPermission() || advertiser == null) {
+            Log.e("YANKI_MESH", "Bluetooth izinleri eksik veya cihaz desteklemiyor.")
+            return
+        }
+
+        if (isAdvertising) {
+            Log.d("YANKI_BLE", "Yayın zaten aktif, tekrar başlatılmıyor.")
             return
         }
 
@@ -56,21 +73,33 @@ class BleMeshManager @Inject constructor(
 
         val data = AdvertiseData.Builder()
             .addServiceUuid(ParcelUuid(YANKI_SERVICE_UUID))
+            .setIncludeDeviceName(false)
+            .build()
+
+        // User ID'yi ScanResponse (ikincil paket) içine koyarsak ana pakette yer açılır
+        val scanResponse = AdvertiseData.Builder()
             .addServiceData(ParcelUuid(YANKI_SERVICE_UUID), myUserId.toByteArray())
             .build()
 
-        advertiser?.startAdvertising(settings, data, advertiseCallback)
+        try {
+            advertiser?.startAdvertising(settings, data, scanResponse, advertiseCallback)
+            isAdvertising = true
+        } catch (e: Exception) {
+            Log.e("YANKI_BLE", "Yayın başlatılırken hata oluştu", e)
+        }
     }
 
-    // 2. SCANNING: Etraftaki Komşuları Tara
     @SuppressLint("MissingPermission")
     fun startScanning(onNeighborFound: (id: String, address: String) -> Unit) {
-        if (!hasBluetoothPermission()) {
-            Log.e("YANKI_MESH", "Bluetooth izinleri eksik, tarama başlatılamadı.")
+        if (!hasBluetoothPermission() || scanner == null) {
+            Log.e("YANKI_MESH", "Bluetooth izinleri eksik veya cihaz desteklemiyor.")
             return
         }
 
-        stopScanning()
+        if (isScanning) {
+            Log.d("YANKI_BLE", "Tarama zaten aktif.")
+            return
+        }
 
         val filter = ScanFilter.Builder()
             .setServiceUuid(ParcelUuid(YANKI_SERVICE_UUID))
@@ -82,21 +111,46 @@ class BleMeshManager @Inject constructor(
 
         scanCallback = object : ScanCallback() {
             override fun onScanResult(callbackType: Int, result: ScanResult) {
-                val neighborId = result.scanRecord?.getServiceData(ParcelUuid(YANKI_SERVICE_UUID))
-                    ?.let { String(it) }
+                try {
+                    val address = result.device.address
+                    val currentTime = System.currentTimeMillis()
 
-                if (neighborId != null) {
-                    Log.d("YANKI_MESH", "Yeni Komşu Bulundu: $neighborId (${result.device.address})")
-                    onNeighborFound(neighborId, result.device.address)
+                    // Throttling: Eğer bu cihazı son 10 saniye içinde işlediysek pas geç
+                    val lastSeen = recentlySeenNeighbors[address] ?: 0L
+                    if (currentTime - lastSeen < RECENTLY_SEEN_THRESHOLD) return
+
+                    val scanRecord = result.scanRecord
+                    // Önce ServiceData'ya bak (Eski yöntem)
+                    var serviceData = scanRecord?.getServiceData(ParcelUuid(YANKI_SERVICE_UUID))
+                    
+                    // Eğer orada yoksa ScanResponse içindeki ServiceData'ya bak (Yenilenmiş yöntem)
+                    if (serviceData == null || serviceData.isEmpty()) {
+                        // Bazı cihazlarda scanRecord.serviceData tüm map'i dönmeyebilir, manuel parse gerekebilir veya alternatif kontrol:
+                        serviceData = scanRecord?.serviceData?.get(ParcelUuid(YANKI_SERVICE_UUID))
+                    }
+
+                    if (serviceData != null && serviceData.isNotEmpty()) {
+                        val neighborId = String(serviceData).trim()
+
+                        if (neighborId.isNotEmpty()) {
+                            recentlySeenNeighbors[address] = currentTime
+                            Log.d("YANKI_MESH", "Yeni Komşu Bulundu: $neighborId ($address)")
+                            onNeighborFound(neighborId, address)
+                        }
+                    }
+                } catch (e: Exception) {
+                    Log.e("YANKI_MESH", "Tarama sonucu işlenirken hata oluştu: ${e.message}")
                 }
             }
 
             override fun onScanFailed(errorCode: Int) {
                 Log.e("YANKI_MESH", "Tarama Hatası: $errorCode")
+                isScanning = false
             }
         }
 
         scanner?.startScan(listOf(filter), settings, scanCallback)
+        isScanning = true
     }
 
     // 3. GATT SERVER: Posta Kutusunu Aç (Veri Almak İçin)
@@ -104,6 +158,11 @@ class BleMeshManager @Inject constructor(
     fun startGattServer() {
         if (!hasBluetoothPermission()) {
             Log.e("YANKI_MESH", "Bluetooth izinleri eksik, GATT Server başlatılamadı.")
+            return
+        }
+
+        if (isGattServerRunning) {
+            Log.d("YANKI_BLE", "GATT Server zaten aktif.")
             return
         }
 
@@ -119,6 +178,7 @@ class BleMeshManager @Inject constructor(
         service.addCharacteristic(characteristic)
 
         gattServer?.addService(service)
+        isGattServerRunning = true
         Log.d("YANKI_BLE", "GATT Server (Posta Kutusu) açıldı.")
     }
 
@@ -130,52 +190,100 @@ class BleMeshManager @Inject constructor(
             return
         }
 
-        val device = bluetoothAdapter?.getRemoteDevice(neighborMacAddress)
+        if (neighborMacAddress.isBlank() || !BluetoothAdapter.checkBluetoothAddress(neighborMacAddress)) {
+            Log.e("YANKI_BLE", "Geçersiz MAC adresi: $neighborMacAddress")
+            return
+        }
 
-        device?.connectGatt(context, false, object : BluetoothGattCallback() {
-            override fun onConnectionStateChange(gatt: BluetoothGatt, status: Int, newState: Int) {
-                if (newState == BluetoothProfile.STATE_CONNECTED) {
-                    Log.d("YANKI_BLE", "Komşuya bağlandık, servisler aranıyor...")
-                    gatt.discoverServices()
-                } else if (newState == BluetoothProfile.STATE_DISCONNECTED) {
-                    gatt.close()
-                }
+        if (payload.size > 512) {
+            Log.w("YANKI_BLE", "Payload boyutu (${payload.size} bytes) BLE MTU limitlerini zorlayabilir.")
+        }
+
+        try {
+            val device = bluetoothAdapter?.getRemoteDevice(neighborMacAddress)
+            if (device == null) {
+                Log.e("YANKI_BLE", "Cihaz bulunamadı: $neighborMacAddress")
+                return
             }
 
-            override fun onServicesDiscovered(gatt: BluetoothGatt, status: Int) {
-                if (status == BluetoothGatt.GATT_SUCCESS) {
-                    val service = gatt.getService(YANKI_SERVICE_UUID)
-                    val characteristic = service?.getCharacteristic(YANKI_CHARACTERISTIC_UUID)
-
-                    if (characteristic != null) {
-                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                            gatt.writeCharacteristic(characteristic, payload, BluetoothGattCharacteristic.WRITE_TYPE_DEFAULT)
-                        } else {
-                            @Suppress("DEPRECATION")
-                            characteristic.value = payload
-                            @Suppress("DEPRECATION")
-                            gatt.writeCharacteristic(characteristic)
-                        }
-                        Log.d("YANKI_BLE", "Veri yazma komutu gönderildi.")
+            device.connectGatt(context, false, object : BluetoothGattCallback() {
+                override fun onConnectionStateChange(gatt: BluetoothGatt, status: Int, newState: Int) {
+                    if (newState == BluetoothProfile.STATE_CONNECTED) {
+                        Log.d("YANKI_BLE", "Komşuya bağlandık, MTU talep ediliyor...")
+                        gatt.requestMtu(512) // Devasa paketler için MTU artırımı
+                    } else if (newState == BluetoothProfile.STATE_DISCONNECTED || status != BluetoothGatt.GATT_SUCCESS) {
+                        Log.d("YANKI_BLE", "Bağlantı kesildi veya hata oluştu. Status: $status")
+                        gatt.close()
                     }
                 }
-            }
 
-            override fun onCharacteristicWrite(gatt: BluetoothGatt, characteristic: BluetoothGattCharacteristic, status: Int) {
-                if (status == BluetoothGatt.GATT_SUCCESS) {
-                    Log.d("YANKI_BLE", "Veri başarıyla iletildi. Bağlantı kesiliyor.")
+                override fun onMtuChanged(gatt: BluetoothGatt, mtu: Int, status: Int) {
+                    Log.d("YANKI_BLE", "MTU Değişti: $mtu, durum: $status")
+                    // MTU ne olursa olsun servisleri aramaya devam et
+                    gatt.discoverServices()
+                }
+
+                override fun onServicesDiscovered(gatt: BluetoothGatt, status: Int) {
+                    if (status == BluetoothGatt.GATT_SUCCESS) {
+                        val service = gatt.getService(YANKI_SERVICE_UUID)
+                        val characteristic = service?.getCharacteristic(YANKI_CHARACTERISTIC_UUID)
+
+                        if (characteristic != null) {
+                            val writeType = BluetoothGattCharacteristic.WRITE_TYPE_DEFAULT
+                            
+                            // MTU kontrolü ve chunking uyarısı
+                            if (payload.size > 512) {
+                                Log.e("YANKI_BLE", "HATA: Payload 512 byte sınırını aşıyor! Parçalama (chunking) henüz desteklenmiyor.")
+                                gatt.disconnect()
+                                return
+                            }
+
+                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                                val res = gatt.writeCharacteristic(characteristic, payload, writeType)
+                                if (res != BluetoothStatusCodes.SUCCESS) {
+                                    Log.e("YANKI_BLE", "Write failed with error code: $res")
+                                }
+                            } else {
+                                @Suppress("DEPRECATION")
+                                characteristic.value = payload
+                                @Suppress("DEPRECATION")
+                                characteristic.writeType = writeType
+                                @Suppress("DEPRECATION")
+                                gatt.writeCharacteristic(characteristic)
+                            }
+                            Log.d("YANKI_BLE", "Veri yazma komutu gönderildi (${payload.size} bytes).")
+                        } else {
+                            Log.e("YANKI_BLE", "Karakteristik bulunamadı.")
+                            gatt.disconnect()
+                        }
+                    } else {
+                        Log.e("YANKI_BLE", "Servis keşfi başarısız. Status: $status")
+                        gatt.disconnect()
+                    }
+                }
+
+                override fun onCharacteristicWrite(gatt: BluetoothGatt, characteristic: BluetoothGattCharacteristic, status: Int) {
+                    if (status == BluetoothGatt.GATT_SUCCESS) {
+                        Log.d("YANKI_BLE", "Veri başarıyla iletildi. Bağlantı kesiliyor.")
+                    } else {
+                        Log.e("YANKI_BLE", "Veri iletim hatası. Status: $status")
+                    }
                     gatt.disconnect()
                 }
-            }
-        })
+            })
+        } catch (e: Exception) {
+            Log.e("YANKI_BLE", "GATT bağlantısı sırasında kritik hata", e)
+        }
     }
 
     private val advertiseCallback = object : AdvertiseCallback() {
         override fun onStartSuccess(settingsInEffect: AdvertiseSettings) {
             Log.d("YANKI_MESH", "BLE Yayını Başarıyla Başlatıldı.")
+            isAdvertising = true
         }
         override fun onStartFailure(errorCode: Int) {
             Log.e("YANKI_MESH", "Yayın Hatası: $errorCode")
+            isAdvertising = false
         }
     }
 
@@ -192,7 +300,7 @@ class BleMeshManager @Inject constructor(
         ) {
             if (characteristic.uuid == YANKI_CHARACTERISTIC_UUID && value != null) {
                 Log.d("YANKI_BLE", "${device.address} cihazından veri geldi!")
-                // TODO: Gelen veriyi işle
+                onDataReceived?.invoke(value)
                 if (responseNeeded) {
                     gattServer?.sendResponse(device, requestId, BluetoothGatt.GATT_SUCCESS, offset, value)
                 }
@@ -206,17 +314,24 @@ class BleMeshManager @Inject constructor(
         scanCallback?.let {
             scanner?.stopScan(it)
             scanCallback = null
+            isScanning = false
         }
     }
 
     @SuppressLint("MissingPermission")
     fun stopMesh() {
         if (hasBluetoothPermission()) {
-            advertiser?.stopAdvertising(advertiseCallback)
+            try {
+                advertiser?.stopAdvertising(advertiseCallback)
+            } catch (e: Exception) {
+                Log.e("YANKI_BLE", "Yayın durdurulurken hata", e)
+            }
             stopScanning()
             gattServer?.close()
         }
         gattServer = null
+        isAdvertising = false
+        isGattServerRunning = false
         Log.d("YANKI_MESH", "BLE Mesh Durduruldu.")
     }
 }

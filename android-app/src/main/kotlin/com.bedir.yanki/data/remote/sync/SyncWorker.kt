@@ -26,37 +26,64 @@ class SyncWorker @AssistedInject constructor(
         try {
             Log.d("YANKI_SYNC", "Senkronizasyon işlemi başlatıldı...")
 
-            // 1. Henüz buluta gönderilmemiş (is_synced = false) mesajları getir
-            val unsyncedMessages = repository.getUnsyncedMessages()
+            // --- 1. PULL: Sunucudan yeni verileri çek (Çift yönlü senkronizasyon) ---
+            val lastSync = repository.sharedPreferences.getLong("last_cloud_sync", 0L)
+            val pullResponse = networkClient.pullNewDataFromServer(repository.currentUserId, lastSync)
+            
+            pullResponse?.let { payload ->
+                Log.d("YANKI_SYNC", "Sunucudan veri çekildi: ${payload.messagesCount} mesaj, ${payload.signalsCount} SOS")
+                
+                // Mesajları kaydet
+                payload.messagesList.forEach { protoMsg ->
+                    val entity = ProtoMapper.fromProto(protoMsg)
+                    repository.saveMessage(entity)
+                    
+                    // Eğer bu mesaj bizim değilse ve mesh üzerinden yayılması gerekiyorsa
+                    // status = STATUS_RELAYED (1) olarak işaretleyip mesh'e bırakabiliriz
+                }
 
-            if (unsyncedMessages.isEmpty()) {
+                // SOS sinyallerini kaydet
+                payload.signalsList.forEach { protoSos ->
+                    val entity = ProtoMapper.fromProtoSOS(protoSos)
+                    repository.saveEmergencySignal(entity)
+                }
+
+                // Senkronizasyon zamanını güncelle
+                repository.sharedPreferences.edit().putLong("last_cloud_sync", System.currentTimeMillis()).apply()
+            }
+
+            // --- 2. PUSH: Henüz buluta gönderilmemiş verileri gönder ---
+            val unsyncedMessages = repository.getUnsyncedMessages()
+            val unsyncedSignals = repository.getAllSignals().filter { !it.is_synced }
+
+            if (unsyncedMessages.isEmpty() && unsyncedSignals.isEmpty()) {
                 Log.d("YANKI_SYNC", "Gönderilecek yeni veri bulunamadı.")
                 return@withContext Result.success()
             }
 
-            Log.d("YANKI_SYNC", "${unsyncedMessages.size} adet mesaj gönderiliyor...")
-
             var allSuccess = true
 
-            // 2. Her bir mesajı tek tek paketle ve gönder
+            // 2. Mesajları Gönder
             unsyncedMessages.forEach { entity ->
-                // Entity -> Protobuf dönüşümü
-                val protoMsg = ProtoMapper.toProto(entity)
-
-                // Sunucuya (Node.js/gRPC) gönderim dene
-                val isSent = networkClient.sendMessageToServer(protoMsg)
-
+                val isSent = networkClient.sendMessageToServer(ProtoMapper.toProto(entity))
                 if (isSent) {
-                    // 3. Başarılıysa veritabanında "senkronize edildi" olarak işaretle
                     repository.markMessageAsSynced(entity.msg_id)
-                    Log.d("YANKI_SYNC", "Mesaj başarıyla senkronize edildi: ${entity.msg_id}")
                 } else {
                     allSuccess = false
-                    Log.e("YANKI_SYNC", "Mesaj gönderimi başarısız: ${entity.msg_id}")
                 }
             }
 
-            // Eğer bazı mesajlar gitmediyse WorkManager uygun bir zamanda tekrar deneyecek
+            // 3. SOS Sinyallerini Gönder
+            unsyncedSignals.forEach { entity ->
+                val isSent = networkClient.sendEmergencyToServer(ProtoMapper.toProtoSOS(entity))
+                if (isSent) {
+                    // SOS sinyalleri için de senkronize edildi işareti (EmergencySignalEntity'e is_synced alanı eklendiği varsayılıyor)
+                    repository.markSignalAsSynced(entity.signal_id)
+                } else {
+                    allSuccess = false
+                }
+            }
+
             if (allSuccess) Result.success() else Result.retry()
 
         } catch (e: Exception) {

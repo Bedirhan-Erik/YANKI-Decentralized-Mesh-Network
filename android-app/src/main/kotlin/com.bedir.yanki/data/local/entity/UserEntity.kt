@@ -10,5 +10,6 @@ data class UserEntity(
     val username: String,
     val public_key: ByteArray,
     val last_seen: Long,
+    val last_mac: String? = null,
     val is_trusted: Boolean = false
 )

@@ -13,10 +13,12 @@ import com.bedir.yanki.ui.emergency.EmergencySOSScreen
 import com.bedir.yanki.ui.main.MainDashboard
 import com.bedir.yanki.ui.messages.ChatDetailScreen
 import com.bedir.yanki.ui.messages.MessagesListScreen
+import com.bedir.yanki.ui.viewmodel.MeshViewModel
 
 @Composable
 fun MainScreen() {
     val navController = rememberNavController()
+    val meshViewModel: MeshViewModel = hiltViewModel()
 
     Scaffold(
         bottomBar = { YankiBottomBar(navController = navController) }
@@ -28,17 +30,17 @@ fun MainScreen() {
         ) {
             // 1. ANA SAYFA (RADAR)
             composable(Screen.Home.route) {
-                MainDashboard()
+                MainDashboard(navController = navController, viewModel = meshViewModel)
             }
 
             // 2. AĞ (SOS EKRANI)
             composable(Screen.Network.route) {
-                EmergencySOSScreen(viewModel = hiltViewModel())
+                EmergencySOSScreen(navController = navController, viewModel = meshViewModel)
             }
 
             // 3. MESAJLAR
             composable(Screen.Messages.route) {
-                MessagesListScreen(viewModel = hiltViewModel(), navController = navController)
+                MessagesListScreen(viewModel = meshViewModel, navController = navController)
             }
             composable(
                 route = Screen.ChatDetail.route
@@ -49,7 +51,7 @@ fun MainScreen() {
                 ChatDetailScreen(
                     userId = userId,
                     userName = userName,
-                    viewModel = hiltViewModel(),
+                    viewModel = meshViewModel,
                     navController = navController
                 )
             }

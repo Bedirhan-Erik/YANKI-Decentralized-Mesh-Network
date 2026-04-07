@@ -23,6 +23,9 @@ interface MessageDao {
     @Query("UPDATE messages SET is_synced = 1 WHERE msg_id = :msgId")
     suspend fun markAsSynced(msgId: String)
 
+    @Query("SELECT * FROM messages ORDER BY timestamp DESC")
+    fun getAllMessages(): Flow<List<MessageEntity>>
+
     @Query("SELECT * FROM messages WHERE (sender_id = :userId) OR (receiver_id = :userId) ORDER BY timestamp ASC")
     fun getChatHistory(userId: String): Flow<List<MessageEntity>>
 

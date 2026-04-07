@@ -10,30 +10,58 @@ import javax.inject.Singleton
 @Singleton
 class SecurityManager @Inject constructor() {
 
-    private val sodium = LazySodiumAndroid(SodiumAndroid())
+    private var sodiumInstance: LazySodiumAndroid? = null
+
+    private fun getSodium(): LazySodiumAndroid? {
+        if (sodiumInstance == null) {
+            try {
+                sodiumInstance = LazySodiumAndroid(SodiumAndroid())
+                android.util.Log.d("YANKI_SECURITY", "Sodium başarıyla başlatıldı.")
+            } catch (e: Throwable) {
+                android.util.Log.e("YANKI_SECURITY", "Sodium başlatılamadı (Kritik): ${e.message}")
+                if (e is UnsatisfiedLinkError) e.printStackTrace()
+            }
+        }
+        return sodiumInstance
+    }
 
     /**
      * Kullanıcı için yeni bir Ed25519 anahtar çifti oluşturur.
-     * Uygulama ilk kez çalıştırıldığında bir kez çağrılmalıdır.
      */
-    fun generateUserKeyPair(): KeyPair {
-        return sodium.cryptoSignKeypair()
+    fun generateUserKeyPair(): com.goterl.lazysodium.utils.KeyPair? {
+        return try {
+            getSodium()?.cryptoSignKeypair()
+        } catch (e: Exception) {
+            android.util.Log.e("YANKI_SECURITY", "KeyPair oluşturma hatası: ${e.message}")
+            null
+        }
     }
 
-    /**
-     * Verilen veriyi kullanıcının özel anahtarı (private key) ile imzalar.
-     * @return 64 bytelık imza (signature)
-     */
     fun signData(data: ByteArray, privateKey: ByteArray): ByteArray {
-        val signature = ByteArray(Sign.ED25519_BYTES)
-        sodium.cryptoSignDetached(signature, data, data.size.toLong(), privateKey)
-        return signature
+        return try {
+            val s = getSodium()
+            if (s == null || privateKey.size < 32) return ByteArray(64)
+            
+            val signature = ByteArray(64)
+            val success = s.cryptoSignDetached(signature, data, data.size.toLong(), privateKey)
+            if (success) signature else ByteArray(64)
+        } catch (e: Throwable) {
+            android.util.Log.e("YANKI_SECURITY", "İmzalama hatası (Fatal): ${e.message}")
+            ByteArray(64)
+        }
     }
 
     /**
-     * İmzalanmış verinin doğruluğunu gönderenin genel anahtarı (public key) ile kontrol eder.
+     * İmzayı doğrular.
      */
     fun verifySignature(data: ByteArray, signature: ByteArray, publicKey: ByteArray): Boolean {
-        return sodium.cryptoSignVerifyDetached(signature, data, data.size, publicKey)
+        return try {
+            val s = getSodium()
+            if (s == null || signature.size != 64 || publicKey.size < 32) return false
+            s.cryptoSignVerifyDetached(signature, data, data.size, publicKey)
+        } catch (e: Throwable) {
+            android.util.Log.e("YANKI_SECURITY", "Doğrulama hatası: ${e.message}")
+            false
+        }
     }
 }

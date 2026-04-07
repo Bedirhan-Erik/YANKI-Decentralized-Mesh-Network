@@ -11,7 +11,7 @@ import com.bedir.yanki.data.local.entity.EmergencySignalEntity
 
 @Database(
     entities = [UserEntity::class, MessageEntity::class, EmergencySignalEntity::class],
-    version = 1,
+    version = 3,
     exportSchema = false
 )
 abstract class YankiDatabase : RoomDatabase() {

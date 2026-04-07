@@ -9,6 +9,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
@@ -34,21 +35,31 @@ fun MessagesListScreen(viewModel: MeshViewModel, navController: NavController) {
         modifier = Modifier
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background)
-            .padding(top = 24.dp)
     ) {
         // --- ÜST BAŞLIK VE İKON ---
         Row(
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 16.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Column {
-                Text(text = "${uiState.neighborCount} Kişi çevrimiçi", color = Color.Gray, fontSize = 14.sp)
-                Text(text = "Mesajlar", style = MaterialTheme.typography.headlineLarge.copy(fontWeight = FontWeight.Bold))
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                IconButton(onClick = { navController.navigate(Screen.Home.route) }) {
+                    Icon(Icons.Default.Home, contentDescription = "Ana Sayfa", tint = Color.White)
+                }
+                Spacer(modifier = Modifier.width(8.dp))
+                Column {
+                    Text(text = "${uiState.neighborCount} Kişi çevrimiçi", color = Color.Gray, fontSize = 12.sp)
+                    Text(
+                        text = "Mesajlar",
+                        style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold)
+                    )
+                }
             }
             IconButton(
                 onClick = { /* Yeni Mesaj */ },
-                modifier = Modifier.size(56.dp).clip(RoundedCornerShape(12.dp)).background(YankiDarkBg)
+                modifier = Modifier.size(48.dp).clip(RoundedCornerShape(12.dp)).background(YankiDarkBg)
             ) {
                 Icon(Icons.Default.Notifications, contentDescription = null, tint = Color.White)
             }

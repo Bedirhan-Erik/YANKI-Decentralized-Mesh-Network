@@ -47,6 +47,12 @@ service YankiSyncService {
   rpc SyncMessages (Message) returns (SyncResponse);
   rpc SendEmergencySignal (EmergencySignal) returns (SyncResponse);
   rpc RegisterUser (User) returns (SyncResponse);
+  rpc GetNewData (SyncRequest) returns (MeshPayload);
+}
+
+message SyncRequest {
+  string user_id = 1;
+  int64 last_sync_time = 2;
 }
 
 message SyncResponse {

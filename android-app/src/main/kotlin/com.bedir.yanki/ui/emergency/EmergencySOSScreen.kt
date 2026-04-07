@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -16,98 +17,143 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.navigation.NavController
+import com.bedir.yanki.ui.navigation.Screen
 import com.bedir.yanki.ui.theme.*
 import com.bedir.yanki.ui.viewmodel.MeshViewModel
 
 @Composable
-fun EmergencySOSScreen(viewModel: MeshViewModel) {
+fun EmergencySOSScreen(navController: NavController, viewModel: MeshViewModel) {
     var selectedDisaster by remember { mutableStateOf("Deprem") }
+    val snackbarHostState = remember { SnackbarHostState() }
+    val meshStatus by viewModel.meshStatus.collectAsState()
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(Color.White) // Tasarımdaki açık renk arka plan
-            .padding(24.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        // --- ÜST BAŞLIK ---
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text(
-                text = "Acil Sinyal",
-                style = MaterialTheme.typography.headlineLarge.copy(fontWeight = FontWeight.Bold)
-            )
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Box(modifier = Modifier.size(10.dp).background(Color.Red, CircleShape))
-                Spacer(modifier = Modifier.width(8.dp))
-                Text(text = "Canlı", color = Color.Red, fontWeight = FontWeight.Medium)
-            }
+    // SOS mesajlarını dinle
+    LaunchedEffect(Unit) {
+        viewModel.sosEvent.collect { message ->
+            snackbarHostState.showSnackbar(message)
         }
+    }
 
-        Spacer(modifier = Modifier.height(40.dp))
-
-        // --- MERKEZİ SOS BUTONU KARTI ---
-        Box(
+    Scaffold(
+        snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
+        containerColor = Color.White
+    ) { innerPadding ->
+        Column(
             modifier = Modifier
-                .fillMaxWidth()
-                .clip(RoundedCornerShape(32.dp))
-                .background(Color(0xFFFFF0F0)) // Hafif kırmızımsı arka plan
-                .padding(vertical = 48.dp),
-            contentAlignment = Alignment.Center
+                .fillMaxSize()
+                .padding(innerPadding)
+                .padding(horizontal = 24.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                // Büyük Kırmızı SOS Butonu
-                Surface(
-                    modifier = Modifier
-                        .size(140.dp)
-                        .clickable {
-                            // TODO: ViewModel üzerinden SOS fırlat!
-                            viewModel.sendEmergencySOS(selectedDisaster, 38.4192, 21.1287, 56)
-                        },
-                    shape = CircleShape,
-                    color = Color(0xFFFF5252),
-                    shadowElevation = 8.dp
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Warning,
-                        contentDescription = "SOS",
-                        tint = Color.White,
-                        modifier = Modifier.padding(32.dp).size(60.dp)
+            // --- ÜST BAŞLIK ---
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 16.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    IconButton(onClick = { navController.navigate(Screen.Home.route) }) {
+                        Icon(Icons.Default.Home, contentDescription = "Ana Sayfa", tint = Color.Black)
+                    }
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = "Acil Sinyal",
+                        style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold)
                     )
                 }
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    val statusColor = if (meshStatus.isMeshActive) Color.Red else Color.Gray
+                    val statusText = if (meshStatus.isMeshActive) "Canlı" else "Çevrimdışı"
+                    
+                    Box(modifier = Modifier.size(10.dp).background(statusColor, CircleShape))
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(text = statusText, color = statusColor, fontWeight = FontWeight.Medium)
+                }
+            }
 
-                Spacer(modifier = Modifier.height(24.dp))
-                Text(text = "SOS Yayınla", fontSize = 24.sp, fontWeight = FontWeight.Bold, color = Color(0xFF421C1C))
-                Text(
-                    text = "Tüm mesh ağına konumunu ve\ndurumunu iletir",
-                    textAlign = androidx.compose.ui.text.style.TextAlign.Center,
-                    color = Color.Red.copy(alpha = 0.7f),
-                    fontSize = 14.sp
+            Spacer(modifier = Modifier.height(40.dp))
+
+            // --- MERKEZİ SOS BUTONU KARTI ---
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(32.dp))
+                    .background(Color(0xFFFFF0F0)) // Hafif kırmızımsı arka plan
+                    .padding(vertical = 48.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    // Büyük Kırmızı SOS Butonu
+                    Surface(
+                        modifier = Modifier
+                            .size(140.dp)
+                            .clickable {
+                                val status = viewModel.userStatus.value
+                                viewModel.sendEmergencySOS(
+                                    selectedDisaster,
+                                    status.latitude,
+                                    status.longitude,
+                                    status.batteryLevel
+                                )
+                            },
+                        shape = CircleShape,
+                        color = Color(0xFFFF5252),
+                        shadowElevation = 8.dp
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Warning,
+                            contentDescription = "SOS",
+                            tint = Color.White,
+                            modifier = Modifier.padding(32.dp).size(60.dp)
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(24.dp))
+                    Text(text = "SOS Yayınla", fontSize = 24.sp, fontWeight = FontWeight.Bold, color = Color(0xFF421C1C))
+                    Text(
+                        text = "Tüm mesh ağına konumunu ve\ndurumunu iletir",
+                        textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                        color = Color.Red.copy(alpha = 0.7f),
+                        fontSize = 14.sp
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(32.dp))
+
+            // --- AFET TÜRÜ SEÇİMİ ---
+            Text(text = "Afet türü", modifier = Modifier.align(Alignment.Start), color = Color.Gray)
+            Spacer(modifier = Modifier.height(12.dp))
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                DisasterChip("Deprem", "🌋", selectedDisaster == "Deprem") { selectedDisaster = "Deprem" }
+                DisasterChip("Sel", "🌧️", selectedDisaster == "Sel") { selectedDisaster = "Sel" }
+                DisasterChip("Yangın", "🔥", selectedDisaster == "Yangın") { selectedDisaster = "Yangın" }
+                DisasterChip("Diğer", "🕒", selectedDisaster == "Diğer") { selectedDisaster = "Diğer" }
+            }
+
+            Spacer(modifier = Modifier.height(32.dp))
+
+            // --- DURUM BİLGİLERİ (Batarya ve Konum) ---
+            val userStatus by viewModel.userStatus.collectAsState()
+
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                StatusBox(
+                    label = "Batarya",
+                    value = "%${userStatus.batteryLevel}",
+                    modifier = Modifier.weight(1f),
+                    color = if (userStatus.batteryLevel > 20) YankiGreen else Color.Red
+                )
+                StatusBox(
+                    label = "Konum",
+                    value = String.format(java.util.Locale.getDefault(), "%.4f", userStatus.latitude),
+                    subValue = String.format(java.util.Locale.getDefault(), "%.4f Aktif", userStatus.longitude),
+                    modifier = Modifier.weight(1f),
+                    color = Color.Blue
                 )
             }
-        }
-
-        Spacer(modifier = Modifier.height(32.dp))
-
-        // --- AFET TÜRÜ SEÇİMİ ---
-        Text(text = "Afet türü", modifier = Modifier.align(Alignment.Start), color = Color.Gray)
-        Spacer(modifier = Modifier.height(12.dp))
-        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-            DisasterChip("Deprem", "🌋", selectedDisaster == "Deprem") { selectedDisaster = "Deprem" }
-            DisasterChip("Sel", "🌧️", selectedDisaster == "Sel") { selectedDisaster = "Sel" }
-            DisasterChip("Yangın", "🔥", selectedDisaster == "Yangın") { selectedDisaster = "Yangın" }
-            DisasterChip("Diğer", "🕒", selectedDisaster == "Diğer") { selectedDisaster = "Diğer" }
-        }
-
-        Spacer(modifier = Modifier.height(32.dp))
-
-        // --- DURUM BİLGİLERİ (Batarya ve Konum) ---
-        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-            StatusBox(label = "Batarya", value = "%56", modifier = Modifier.weight(1f), color = YankiGreen)
-            StatusBox(label = "Konum", value = "38.4192", subValue = "21.1287 Aktif", modifier = Modifier.weight(1f), color = Color.Blue)
         }
     }
 }

@@ -16,10 +16,9 @@ object NetworkModule {
     @Provides
     @Singleton
     fun provideGrpcChannel(): ManagedChannel {
-        // 10.0.2.2 -> Android Emülatörünün bilgisayarındaki 'localhost'a bakma yoludur.
-        // Eğer gerçek telefon kullanıyorsan bilgisayarının yerel IP'sini (örn: 192.168.1.x) yazmalısın.
-        return ManagedChannelBuilder.forAddress("10.0.2.2", 50051)
-            .usePlaintext() // Test aşamasında SSL/TLS sertifikası olmadan bağlanmak için
+        // Gerçek cihaz bağlantısı için PC IP adresi kullanılıyor: 172.20.10.4
+        return ManagedChannelBuilder.forAddress("172.20.10.4", 50051)
+            .usePlaintext()
             .build()
     }
 

@@ -11,7 +11,7 @@ import android.util.Log
 object ProtoMapper {
 
     fun toProto(entity: MessageEntity): Message {
-        return Message.newBuilder()
+        val builder = Message.newBuilder()
             .setMsgId(entity.msg_id)
             .setSenderId(entity.sender_id)
             .setReceiverId(entity.receiver_id)
@@ -20,7 +20,40 @@ object ProtoMapper {
             .setStatus(entity.status)
             .setIsSynced(entity.is_synced)
             .setTtl(entity.ttl)
-            .build()
+        
+        entity.signature?.let {
+            builder.setSignature(ByteString.copyFrom(it))
+        }
+        
+        return builder.build()
+    }
+
+    fun fromProto(proto: Message): MessageEntity {
+        return MessageEntity(
+            msg_id = proto.msgId,
+            sender_id = proto.senderId,
+            receiver_id = proto.receiverId,
+            content_blob = proto.contentBlob.toByteArray(),
+            signature = if (proto.signature.isEmpty) null else proto.signature.toByteArray(),
+            timestamp = proto.timestamp,
+            status = proto.status,
+            is_synced = true, // Sunucudan geldiğine göre senkronize
+            ttl = proto.ttl
+        )
+    }
+
+    fun fromProtoSOS(proto: EmergencySignal): EmergencySignalEntity {
+        return EmergencySignalEntity(
+            signal_id = proto.signalId,
+            user_id = proto.userId,
+            latitude = proto.latitude,
+            longitude = proto.longitude,
+            emergency_type = proto.emergencyType,
+            battery_level = proto.batteryLevel,
+            hop_count = proto.hopCount,
+            timestamp = proto.timestamp,
+            is_synced = true
+        )
     }
 
     fun messageToBytes(entity: MessageEntity): ByteArray {
@@ -34,6 +67,7 @@ object ProtoMapper {
             sender_id = proto.senderId,
             receiver_id = proto.receiverId,
             content_blob = proto.contentBlob.toByteArray(),
+            signature = if (proto.signature.isEmpty) null else proto.signature.toByteArray(),
             timestamp = proto.timestamp,
             status = proto.status,
             is_synced = false,
@@ -97,6 +131,7 @@ object ProtoMapper {
                     sender_id = proto.senderId,
                     receiver_id = proto.receiverId,
                     content_blob = proto.contentBlob.toByteArray(),
+                    signature = if (proto.signature.isEmpty) null else proto.signature.toByteArray(),
                     timestamp = proto.timestamp,
                     status = proto.status,
                     is_synced = false,

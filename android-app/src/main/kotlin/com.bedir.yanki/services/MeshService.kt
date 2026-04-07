@@ -3,6 +3,7 @@ package com.bedir.yanki.services
 import android.app.*
 import android.content.Intent
 import android.os.IBinder
+import android.content.pm.ServiceInfo
 import androidx.core.app.NotificationCompat
 import com.bedir.yanki.R
 import com.bedir.yanki.data.remote.mesh.connectivity.BleMeshManager
@@ -30,7 +31,15 @@ class MeshService : Service() {
             .build()
 
         // Servisi "Foreground" olarak başlat (Android 14+ için tip belirtmek gerekebilir)
-        startForeground(1, notification)
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q) {
+            startForeground(
+                1,
+                notification,
+                ServiceInfo.FOREGROUND_SERVICE_TYPE_LOCATION or ServiceInfo.FOREGROUND_SERVICE_TYPE_CONNECTED_DEVICE
+            )
+        } else {
+            startForeground(1, notification)
+        }
 
         // MESH MOTORUNU ÇALIŞTIR
         startMeshEngine()
@@ -39,6 +48,9 @@ class MeshService : Service() {
     }
 
     private fun startMeshEngine() {
+        // 0. Payload dinlemeyi başlat
+        repository.startListeningForMeshPayloads()
+
         // 1. BLE Taramasını Başlat
         bleMeshManager.startScanning { neighborId, address ->
             serviceScope.launch {
@@ -47,8 +59,11 @@ class MeshService : Service() {
             }
         }
 
-        // 2. BLE Yayınını Başlat (Ben buradayım!)
-        bleMeshManager.startAdvertising("user_bedirhan_01")
+        // 2. BLE Yayınını Başlat (Repository'den gelen gerçek ID'yi kullan)
+        bleMeshManager.startAdvertising(repository.currentUserId)
+
+        // 3. GATT Server'ı başlat (Posta kutusunu aç)
+        bleMeshManager.startGattServer()
     }
 
     private fun createNotificationChannel() {

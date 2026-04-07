@@ -93,11 +93,12 @@ fun ChatDetailScreen(
                 onTextChange = { messageText = it },
                 onSend = {
                     if (messageText.isNotBlank()) {
-                        // 4. ÇÖKME KORUMASI: Gönderim işlemi zırhlandı
+                        // 4. ÇÖKME KORUMASI: Gönderim işlemi çift katmanlı zırhlandı
                         try {
                             viewModel.sendMessage(userId, messageText)
                             messageText = "" // Gönderdikten sonra kutuyu temizle
                         } catch (e: Exception) {
+                            // UI tarafında bir hata oluşursa yakala ve logla
                             e.printStackTrace()
                         }
                     }

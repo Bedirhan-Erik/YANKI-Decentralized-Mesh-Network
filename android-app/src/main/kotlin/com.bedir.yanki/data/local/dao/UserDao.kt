@@ -4,6 +4,7 @@ import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
+import kotlinx.coroutines.flow.Flow
 import com.bedir.yanki.data.local.entity.UserEntity
 
 @Dao
@@ -14,9 +15,12 @@ interface UserDao {
     @Query("SELECT * FROM users WHERE user_id = :userId")
     suspend fun getUserById(userId: String): UserEntity?
 
+    @Query("SELECT * FROM users ORDER BY last_seen DESC")
+    fun getAllUsersFlow(): Flow<List<UserEntity>>
+
     @Query("SELECT * FROM users")
     suspend fun getAllUsers(): List<UserEntity>
 
-    @Query("UPDATE users SET last_seen = :timestamp WHERE user_id = :userId")
-    suspend fun updateLastSeen(userId: String, timestamp: Long)
+    @Query("UPDATE users SET last_seen = :timestamp, last_mac = :macAddress WHERE user_id = :userId")
+    suspend fun updateLastSeen(userId: String, timestamp: Long, macAddress: String)
 }
