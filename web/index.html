@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>YANKI – Acil İletişim Ağı İzleme Merkezi</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: Arial, Helvetica, sans-serif;
+      font-size: 13px;
+      background: #d6dce6;
+      color: #111;
+    }
+
+    /* ── ÜST HEADER ── */
+    #top-bar {
+      background: #002060;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      padding: 8px 20px;
+      border-bottom: 3px solid #e8a000;
+    }
+    #top-bar .logo {
+      font-size: 36px;
+      font-weight: 900;
+      letter-spacing: -1px;
+      color: #e8c000;
+      line-height: 1;
+    }
+    #top-bar .titles { flex: 1; }
+    #top-bar .titles h1 {
+      font-size: 16px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .5px;
+      line-height: 1.3;
+    }
+    #top-bar .titles p {
+      font-size: 11px;
+      color: #afc8e8;
+      margin-top: 2px;
+      text-transform: uppercase;
+      letter-spacing: .8px;
+    }
+    #top-bar .clock {
+      text-align: right;
+      font-size: 11px;
+      color: #afc8e8;
+      line-height: 1.8;
+    }
+    #top-bar .clock span {
+      display: block;
+      font-size: 22px;
+      font-weight: 700;
+      color: #fff;
+      font-variant-numeric: tabular-nums;
+    }
+
+    /* ── NAVİGASYON ── */
+    nav {
+      background: #003580;
+      display: flex;
+      gap: 1px;
+    }
+    nav a {
+      display: block;
+      padding: 7px 16px;
+      color: #c8d8f0;
+      text-decoration: none;
+      font-size: 12px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .4px;
+      transition: background .15s;
+    }
+    nav a:hover, nav a.active { background: #e8a000; color: #fff; }
+
+    /* ── ANA PANEL ── */
+    #main {
+      max-width: 1200px;
+      margin: 18px auto;
+      padding: 0 12px;
+    }
+
+    /* ── PANEL KUTU ── */
+    .panel {
+      background: #fff;
+      border: 1px solid #a0b0c8;
+      border-radius: 2px;
+      margin-bottom: 18px;
+    }
+    .panel-header {
+      background: #002060;
+      color: #fff;
+      padding: 7px 12px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+    .panel-header h2 {
+      font-size: 13px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .5px;
+    }
+    .panel-header .meta {
+      font-size: 11px;
+      color: #afc8e8;
+    }
+    .live-dot {
+      display: inline-block;
+      width: 8px; height: 8px;
+      background: #ff4444;
+      border-radius: 50%;
+      margin-right: 6px;
+      animation: blink 1s infinite;
+    }
+    @keyframes blink { 0%,100%{opacity:1} 50%{opacity:.2} }
+
+    /* ── TABLO ── */
+    .table-wrap { overflow-x: auto; }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    thead tr {
+      background: #003580;
+      color: #fff;
+    }
+    thead th {
+      padding: 7px 10px;
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .5px;
+      white-space: nowrap;
+      border-right: 1px solid #1a4090;
+      text-align: center;
+    }
+    thead th:last-child { border-right: none; }
+    tbody tr:nth-child(even) { background: #edf2fb; }
+    tbody tr:nth-child(odd)  { background: #fff; }
+    tbody tr:hover { background: #fff3cc; }
+    tbody td {
+      padding: 6px 10px;
+      border-bottom: 1px solid #dde4ef;
+      border-right: 1px solid #dde4ef;
+      text-align: center;
+      white-space: nowrap;
+    }
+    tbody td:last-child { border-right: none; }
+    tbody td.name-col { text-align: left; font-weight: 600; white-space: normal; }
+
+    /* Durum renkleri */
+    .badge {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 10px;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: .3px;
+      text-transform: uppercase;
+    }
+    .badge-FIRE      { background: #ff4444; color: #fff; }
+    .badge-INJURED   { background: #e67e00; color: #fff; }
+    .badge-TRAPPED   { background: #8b0000; color: #fff; }
+    .badge-FLOOD     { background: #1565c0; color: #fff; }
+    .badge-SAFE      { background: #2e7d32; color: #fff; }
+    .badge-HELP      { background: #6a0dad; color: #fff; }
+    .badge-UNKNOWN   { background: #757575; color: #fff; }
+    .badge-default   { background: #004d99; color: #fff; }
+
+    /* Yükleniyor */
+    #loading-row td {
+      padding: 30px;
+      color: #666;
+      font-style: italic;
+      text-align: center;
+    }
+
+    /* ── DURUM ÇUBUĞU ── */
+    #status-bar {
+      background: #002060;
+      color: #afc8e8;
+      font-size: 11px;
+      padding: 5px 20px;
+      display: flex;
+      justify-content: space-between;
+    }
+
+    /* ── KURULUM UYARISI ── */
+    #config-warning {
+      background: #fff3cd;
+      border: 1px solid #e8a000;
+      border-radius: 4px;
+      padding: 14px 18px;
+      margin-bottom: 14px;
+      font-size: 12px;
+      line-height: 1.7;
+      display: none;
+    }
+    #config-warning strong { color: #002060; }
+  </style>
+</head>
+<body>
+
+<!-- ── ÜST HEADER ── -->
+<div id="top-bar">
+  <div class="logo">⚡YANKI</div>
+  <div class="titles">
+    <h1>Merkeziyetsiz Afet İletişim Ağı – Canlı İzleme Merkezi</h1>
+    <p>Boğaziçi Üniversitesi · Kandilli Rasathanesi ve Deprem Araştırma Enstitüsü tarzı tasarım</p>
+  </div>
+  <div class="clock">
+    <span id="clock-time">--:--:--</span>
+    <div id="clock-date">-- -- ----</div>
+    <div>Türkiye Saati (TRT / UTC+3)</div>
+  </div>
+</div>
+
+<!-- ── NAVİGASYON ── -->
+<nav>
+  <a href="#" class="active">Canlı Veriler</a>
+  <a href="#">Acil Sinyaller</a>
+  <a href="#">Harita</a>
+  <a href="#">Hakkında</a>
+</nav>
+
+<!-- ── ANA İÇERİK ── -->
+<div id="main">
+
+  <!-- Yapılandırma uyarısı (Firebase config girilmemişse gösterilir) -->
+  <div id="config-warning">
+    ⚠️ <strong>Kurulum gerekli:</strong> Sayfanın çalışabilmesi için aşağıdaki bölümde
+    Firebase projenizin yapılandırma bilgilerini <code>index.html</code> dosyasına girmeniz gerekiyor.<br>
+    Firebase Console → Proje Ayarları → Web Uygulaması → <em>firebaseConfig</em> nesnesini kopyalayın.
+  </div>
+
+  <!-- Ana veri tablosu -->
+  <div class="panel">
+    <div class="panel-header">
+      <h2>
+        <span class="live-dot"></span>
+        Son Acil İletişim Kayıtları
+      </h2>
+      <span class="meta">
+        Son güncelleme: <strong id="last-update">–</strong> &nbsp;|&nbsp;
+        Toplam kayıt: <strong id="record-count">0</strong>
+      </span>
+    </div>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Tarih</th>
+            <th>Saat</th>
+            <th>Enlem (K)</th>
+            <th>Boylam (D)</th>
+            <th style="text-align:left; min-width:160px;">İsim Soyisim</th>
+            <th>Durum</th>
+          </tr>
+        </thead>
+        <tbody id="data-tbody">
+          <tr id="loading-row">
+            <td colspan="6">Veriler yükleniyor…</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+
+<!-- ── DURUM ÇUBUĞU ── -->
+<div id="status-bar">
+  <span>YANKI Mesh Network © 2025 – Afet anında kesintisiz iletişim</span>
+  <span id="conn-status">🔴 Bağlantı bekleniyor…</span>
+</div>
+
+
+<!-- ════════════════════════════════════════════════
+     FİREBASE YAPILANDIRMASI
+     Firebase Console → Proje Ayarları → Uygulamalar → Web
+     bölümünden aldığınız firebaseConfig nesnesini buraya yapıştırın.
+     ════════════════════════════════════════════════ -->
+<script type="module">
+  import { initializeApp }   from "https://www.gstatic.com/firebasejs/11.7.1/firebase-app.js";
+  import { getFirestore, collection, query, orderBy, limit, onSnapshot, getDocs }
+    from "https://www.gstatic.com/firebasejs/11.7.1/firebase-firestore.js";
+
+  // ▼▼▼ BU BÖLÜMü KENDİ FİREBASE BİLGİLERİNİZLE DEĞİŞTİRİN ▼▼▼
+  const firebaseConfig = {
+    apiKey:            "BURAYA_API_KEY",
+    authDomain:        "BURAYA_PROJECT_ID.firebaseapp.com",
+    projectId:         "BURAYA_PROJECT_ID",
+    storageBucket:     "BURAYA_PROJECT_ID.appspot.com",
+    messagingSenderId: "BURAYA_SENDER_ID",
+    appId:             "BURAYA_APP_ID"
+  };
+  // ▲▲▲ YAPILANDIRMA SONU ▲▲▲
+
+  // Placeholder kontrolü
+  if (firebaseConfig.apiKey === "BURAYA_API_KEY") {
+    document.getElementById("config-warning").style.display = "block";
+    document.getElementById("loading-row").querySelector("td").textContent =
+      "⚠️ Firebase yapılandırması eksik. Lütfen index.html dosyasını düzenleyin.";
+    document.getElementById("conn-status").textContent = "⚠️ Yapılandırma eksik";
+  } else {
+    startApp(firebaseConfig);
+  }
+
+  function startApp(config) {
+    const app = initializeApp(config);
+    const db  = getFirestore(app);
+
+    let usersMap = {};
+
+    // Tüm kullanıcıları bir kez çek (isim arama için)
+    async function loadUsers() {
+      try {
+        const snap = await getDocs(collection(db, "users"));
+        snap.forEach(doc => { usersMap[doc.id] = doc.data(); });
+      } catch (e) {
+        console.warn("Kullanıcı listesi alınamadı:", e.message);
+      }
+    }
+
+    function durumuBilgisi(tip) {
+      const map = {
+        FIRE:    { tr: "YANGIN",    cls: "badge-FIRE"    },
+        INJURED: { tr: "YARALANDI", cls: "badge-INJURED" },
+        TRAPPED: { tr: "MAHSUR",   cls: "badge-TRAPPED" },
+        FLOOD:   { tr: "SEL",       cls: "badge-FLOOD"   },
+        SAFE:    { tr: "GÜVENDE",   cls: "badge-SAFE"    },
+        HELP:    { tr: "YARDIM",    cls: "badge-HELP"    },
+      };
+      const key = (tip || "").toUpperCase();
+      return map[key] || { tr: tip || "BİLİNMİYOR", cls: "badge-default" };
+    }
+
+    function formatDate(ts) {
+      if (!ts) return { tarih: "–", saat: "–" };
+      const d = ts.toDate ? ts.toDate() : new Date(ts);
+      const tarih = d.toLocaleDateString("tr-TR", { day:"2-digit", month:"2-digit", year:"numeric" });
+      const saat  = d.toLocaleTimeString("tr-TR", { hour:"2-digit", minute:"2-digit", second:"2-digit" });
+      return { tarih, saat };
+    }
+
+    function renderTable(docs) {
+      const tbody = document.getElementById("data-tbody");
+      tbody.innerHTML = "";
+
+      if (docs.length === 0) {
+        tbody.innerHTML = `<tr id="loading-row"><td colspan="6">Henüz kayıt yok.</td></tr>`;
+        return;
+      }
+
+      docs.forEach(docSnap => {
+        const d = docSnap.data();
+        const user = usersMap[d.user_id] || {};
+        const isimSoyisim = user.user_name || d.user_id || "–";
+        const { tarih, saat } = formatDate(d.created_at);
+        const lat = d.location?.latitude  != null ? d.location.latitude.toFixed(4)  : "–";
+        const lon = d.location?.longitude != null ? d.location.longitude.toFixed(4) : "–";
+        const durum = durumuBilgisi(d.emergency_type);
+
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td>${tarih}</td>
+          <td>${saat}</td>
+          <td>${lat}</td>
+          <td>${lon}</td>
+          <td class="name-col">${isimSoyisim}</td>
+          <td><span class="badge ${durum.cls}">${durum.tr}</span></td>
+        `;
+        tbody.appendChild(tr);
+      });
+
+      document.getElementById("record-count").textContent = docs.length;
+      document.getElementById("last-update").textContent =
+        new Date().toLocaleTimeString("tr-TR");
+    }
+
+    async function init() {
+      await loadUsers();
+
+      const q = query(
+        collection(db, "emergency_signals"),
+        orderBy("created_at", "desc"),
+        limit(100)
+      );
+
+      onSnapshot(q,
+        (snapshot) => {
+          renderTable(snapshot.docs);
+          document.getElementById("conn-status").textContent = "🟢 Canlı bağlı";
+        },
+        (err) => {
+          console.error("Firestore hatası:", err);
+          document.getElementById("conn-status").textContent = "🔴 Bağlantı hatası: " + err.message;
+        }
+      );
+    }
+
+    init();
+  }
+</script>
+
+<!-- Saat / Tarih güncelleme -->
+<script>
+  function updateClock() {
+    const now = new Date();
+    document.getElementById("clock-time").textContent =
+      now.toLocaleTimeString("tr-TR", { hour:"2-digit", minute:"2-digit", second:"2-digit" });
+    document.getElementById("clock-date").textContent =
+      now.toLocaleDateString("tr-TR", { day:"2-digit", month:"long", year:"numeric" });
+  }
+  updateClock();
+  setInterval(updateClock, 1000);
+</script>
+
+</body>
+</html>
