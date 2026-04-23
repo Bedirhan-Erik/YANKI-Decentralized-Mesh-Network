@@ -1,0 +1,932 @@
+Index: web/index.html
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+><!DOCTYPE html>\r\n<html lang=\"tr\">\r\n<head>\r\n  <meta charset=\"UTF-8\" />\r\n  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\" />\r\n  <title>YANKI – Acil İletişim Ağı İzleme Merkezi</title>\r\n  <style>\r\n    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }\r\n\r\n    body {\r\n      font-family: Arial, Helvetica, sans-serif;\r\n      font-size: 13px;\r\n      background: #d6dce6;\r\n      color: #111;\r\n    }\r\n\r\n    /* ── ÜST HEADER ── */\r\n    #top-bar {\r\n      background: #002060;\r\n      color: #fff;\r\n      display: flex;\r\n      align-items: center;\r\n      gap: 16px;\r\n      padding: 8px 20px;\r\n      border-bottom: 3px solid #e8a000;\r\n    }\r\n    #top-bar .logo {\r\n      font-size: 36px;\r\n      font-weight: 900;\r\n      letter-spacing: -1px;\r\n      color: #e8c000;\r\n      line-height: 1;\r\n    }\r\n    #top-bar .titles { flex: 1; }\r\n    #top-bar .titles h1 {\r\n      font-size: 16px;\r\n      font-weight: 700;\r\n      text-transform: uppercase;\r\n      letter-spacing: .5px;\r\n      line-height: 1.3;\r\n    }\r\n    #top-bar .titles p {\r\n      font-size: 11px;\r\n      color: #afc8e8;\r\n      margin-top: 2px;\r\n      text-transform: uppercase;\r\n      letter-spacing: .8px;\r\n    }\r\n    #top-bar .clock {\r\n      text-align: right;\r\n      font-size: 11px;\r\n      color: #afc8e8;\r\n      line-height: 1.8;\r\n    }\r\n    #top-bar .clock span {\r\n      display: block;\r\n      font-size: 22px;\r\n      font-weight: 700;\r\n      color: #fff;\r\n      font-variant-numeric: tabular-nums;\r\n    }\r\n\r\n    /* ── NAVİGASYON ── */\r\n    nav {\r\n      background: #003580;\r\n      display: flex;\r\n      gap: 1px;\r\n    }\r\n    nav a {\r\n      display: block;\r\n      padding: 7px 16px;\r\n      color: #c8d8f0;\r\n      text-decoration: none;\r\n      font-size: 12px;\r\n      font-weight: 700;\r\n      text-transform: uppercase;\r\n      letter-spacing: .4px;\r\n      transition: background .15s;\r\n    }\r\n    nav a:hover, nav a.active { background: #e8a000; color: #fff; }\r\n\r\n    /* ── ANA PANEL ── */\r\n    #main {\r\n      max-width: 1200px;\r\n      margin: 18px auto;\r\n      padding: 0 12px;\r\n    }\r\n\r\n    /* ── PANEL KUTU ── */\r\n    .panel {\r\n      background: #fff;\r\n      border: 1px solid #a0b0c8;\r\n      border-radius: 2px;\r\n      margin-bottom: 18px;\r\n    }\r\n    .panel-header {\r\n      background: #002060;\r\n      color: #fff;\r\n      padding: 7px 12px;\r\n      display: flex;\r\n      align-items: center;\r\n      justify-content: space-between;\r\n      gap: 12px;\r\n    }\r\n    .panel-header h2 {\r\n      font-size: 13px;\r\n      font-weight: 700;\r\n      text-transform: uppercase;\r\n      letter-spacing: .5px;\r\n    }\r\n    .panel-header .meta {\r\n      font-size: 11px;\r\n      color: #afc8e8;\r\n    }\r\n    .live-dot {\r\n      display: inline-block;\r\n      width: 8px; height: 8px;\r\n      background: #ff4444;\r\n      border-radius: 50%;\r\n      margin-right: 6px;\r\n      animation: blink 1s infinite;\r\n    }\r\n    @keyframes blink { 0%,100%{opacity:1} 50%{opacity:.2} }\r\n\r\n    /* ── TABLO ── */\r\n    .table-wrap { overflow-x: auto; }\r\n    table {\r\n      width: 100%;\r\n      border-collapse: collapse;\r\n    }\r\n    thead tr {\r\n      background: #003580;\r\n      color: #fff;\r\n    }\r\n    thead th {\r\n      padding: 7px 10px;\r\n      font-size: 11px;\r\n      font-weight: 700;\r\n      text-transform: uppercase;\r\n      letter-spacing: .5px;\r\n      white-space: nowrap;\r\n      border-right: 1px solid #1a4090;\r\n      text-align: center;\r\n    }\r\n    thead th:last-child { border-right: none; }\r\n    tbody tr:nth-child(even) { background: #edf2fb; }\r\n    tbody tr:nth-child(odd)  { background: #fff; }\r\n    tbody tr:hover { background: #fff3cc; }\r\n    tbody td {\r\n      padding: 6px 10px;\r\n      border-bottom: 1px solid #dde4ef;\r\n      border-right: 1px solid #dde4ef;\r\n      text-align: center;\r\n      white-space: nowrap;\r\n    }\r\n    tbody td:last-child { border-right: none; }\r\n    tbody td.name-col { text-align: left; font-weight: 600; white-space: normal; }\r\n\r\n    /* Durum renkleri */\r\n    .badge {\r\n      display: inline-block;\r\n      padding: 2px 8px;\r\n      border-radius: 10px;\r\n      font-size: 11px;\r\n      font-weight: 700;\r\n      letter-spacing: .3px;\r\n      text-transform: uppercase;\r\n    }\r\n    .badge-FIRE      { background: #ff4444; color: #fff; }\r\n    .badge-INJURED   { background: #e67e00; color: #fff; }\r\n    .badge-TRAPPED   { background: #8b0000; color: #fff; }\r\n    .badge-FLOOD     { background: #1565c0; color: #fff; }\r\n    .badge-SAFE      { background: #2e7d32; color: #fff; }\r\n    .badge-HELP      { background: #6a0dad; color: #fff; }\r\n    .badge-UNKNOWN   { background: #757575; color: #fff; }\r\n    .badge-default   { background: #004d99; color: #fff; }\r\n\r\n    /* Yükleniyor */\r\n    #loading-row td {\r\n      padding: 30px;\r\n      color: #666;\r\n      font-style: italic;\r\n      text-align: center;\r\n    }\r\n\r\n    /* ── DURUM ÇUBUĞU ── */\r\n    #status-bar {\r\n      background: #002060;\r\n      color: #afc8e8;\r\n      font-size: 11px;\r\n      padding: 5px 20px;\r\n      display: flex;\r\n      justify-content: space-between;\r\n    }\r\n\r\n    /* ── KURULUM UYARISI ── */\r\n    #config-warning {\r\n      background: #fff3cd;\r\n      border: 1px solid #e8a000;\r\n      border-radius: 4px;\r\n      padding: 14px 18px;\r\n      margin-bottom: 14px;\r\n      font-size: 12px;\r\n      line-height: 1.7;\r\n      display: none;\r\n    }\r\n    #config-warning strong { color: #002060; }\r\n  </style>\r\n</head>\r\n<body>\r\n\r\n<!-- ── ÜST HEADER ── -->\r\n<div id=\"top-bar\">\r\n  <div class=\"logo\">⚡YANKI</div>\r\n  <div class=\"titles\">\r\n    <h1>Merkeziyetsiz Afet İletişim Ağı – Canlı İzleme Merkezi</h1>\r\n    <p>Boğaziçi Üniversitesi · Kandilli Rasathanesi ve Deprem Araştırma Enstitüsü tarzı tasarım</p>\r\n  </div>\r\n  <div class=\"clock\">\r\n    <span id=\"clock-time\">--:--:--</span>\r\n    <div id=\"clock-date\">-- -- ----</div>\r\n    <div>Türkiye Saati (TRT / UTC+3)</div>\r\n  </div>\r\n</div>\r\n\r\n<!-- ── NAVİGASYON ── -->\r\n<nav>\r\n  <a href=\"#\" class=\"active\">Canlı Veriler</a>\r\n  <a href=\"#\">Acil Sinyaller</a>\r\n  <a href=\"#\">Harita</a>\r\n  <a href=\"#\">Hakkında</a>\r\n</nav>\r\n\r\n<!-- ── ANA İÇERİK ── -->\r\n<div id=\"main\">\r\n\r\n  <!-- Yapılandırma uyarısı (Firebase config girilmemişse gösterilir) -->\r\n  <div id=\"config-warning\">\r\n    ⚠\uFE0F <strong>Kurulum gerekli:</strong> Sayfanın çalışabilmesi için aşağıdaki bölümde\r\n    Firebase projenizin yapılandırma bilgilerini <code>index.html</code> dosyasına girmeniz gerekiyor.<br>\r\n    Firebase Console → Proje Ayarları → Web Uygulaması → <em>firebaseConfig</em> nesnesini kopyalayın.\r\n  </div>\r\n\r\n  <!-- Ana veri tablosu -->\r\n  <div class=\"panel\">\r\n    <div class=\"panel-header\">\r\n      <h2>\r\n        <span class=\"live-dot\"></span>\r\n        Son Acil İletişim Kayıtları\r\n      </h2>\r\n      <span class=\"meta\">\r\n        Son güncelleme: <strong id=\"last-update\">–</strong> &nbsp;|&nbsp;\r\n        Toplam kayıt: <strong id=\"record-count\">0</strong>\r\n      </span>\r\n    </div>\r\n\r\n    <div class=\"table-wrap\">\r\n      <table>\r\n        <thead>\r\n          <tr>\r\n            <th>Tarih</th>\r\n            <th>Saat</th>\r\n            <th>Enlem (K)</th>\r\n            <th>Boylam (D)</th>\r\n            <th style=\"text-align:left; min-width:160px;\">İsim Soyisim</th>\r\n            <th>Durum</th>\r\n          </tr>\r\n        </thead>\r\n        <tbody id=\"data-tbody\">\r\n          <tr id=\"loading-row\">\r\n            <td colspan=\"6\">Veriler yükleniyor…</td>\r\n          </tr>\r\n        </tbody>\r\n      </table>\r\n    </div>\r\n  </div>\r\n\r\n</div>\r\n\r\n<!-- ── DURUM ÇUBUĞU ── -->\r\n<div id=\"status-bar\">\r\n  <span>YANKI Mesh Network © 2025 – Afet anında kesintisiz iletişim</span>\r\n  <span id=\"conn-status\">\uD83D\uDD34 Bağlantı bekleniyor…</span>\r\n</div>\r\n\r\n\r\n<!-- ════════════════════════════════════════════════\r\n     FİREBASE YAPILANDIRMASI\r\n     Firebase Console → Proje Ayarları → Uygulamalar → Web\r\n     bölümünden aldığınız firebaseConfig nesnesini buraya yapıştırın.\r\n     ════════════════════════════════════════════════ -->\r\n<script type=\"module\">\r\n  import { initializeApp }   from \"https://www.gstatic.com/firebasejs/11.7.1/firebase-app.js\";\r\n  import { getFirestore, collection, query, orderBy, limit, onSnapshot, getDocs }\r\n    from \"https://www.gstatic.com/firebasejs/11.7.1/firebase-firestore.js\";\r\n\r\n  // ▼▼▼ BU BÖLÜMü KENDİ FİREBASE BİLGİLERİNİZLE DEĞİŞTİRİN ▼▼▼\r\n  const firebaseConfig = {\r\n  };\r\n  // ▲▲▲ YAPILANDIRMA SONU ▲▲▲\r\n\r\n  // Placeholder kontrolü\r\n    document.getElementById(\"config-warning\").style.display = \"block\";\r\n    document.getElementById(\"loading-row\").querySelector(\"td\").textContent =\r\n      \"⚠\uFE0F Firebase yapılandırması eksik. Lütfen index.html dosyasını düzenleyin.\";\r\n    document.getElementById(\"conn-status\").textContent = \"⚠\uFE0F Yapılandırma eksik\";\r\n  } else {\r\n    startApp(firebaseConfig);\r\n  }\r\n\r\n  function startApp(config) {\r\n    const app = initializeApp(config);\r\n    const db  = getFirestore(app);\r\n\r\n    let usersMap = {};\r\n\r\n    // Tüm kullanıcıları bir kez çek (isim arama için)\r\n    async function loadUsers() {\r\n      try {\r\n        const snap = await getDocs(collection(db, \"users\"));\r\n        snap.forEach(doc => { usersMap[doc.id] = doc.data(); });\r\n      } catch (e) {\r\n        console.warn(\"Kullanıcı listesi alınamadı:\", e.message);\r\n      }\r\n    }\r\n\r\n    function durumuBilgisi(tip) {\r\n      const map = {\r\n        FIRE:    { tr: \"YANGIN\",    cls: \"badge-FIRE\"    },\r\n        INJURED: { tr: \"YARALANDI\", cls: \"badge-INJURED\" },\r\n        TRAPPED: { tr: \"MAHSUR\",   cls: \"badge-TRAPPED\" },\r\n        FLOOD:   { tr: \"SEL\",       cls: \"badge-FLOOD\"   },\r\n        SAFE:    { tr: \"GÜVENDE\",   cls: \"badge-SAFE\"    },\r\n        HELP:    { tr: \"YARDIM\",    cls: \"badge-HELP\"    },\r\n      };\r\n      const key = (tip || \"\").toUpperCase();\r\n      return map[key] || { tr: tip || \"BİLİNMİYOR\", cls: \"badge-default\" };\r\n    }\r\n\r\n    function formatDate(ts) {\r\n      if (!ts) return { tarih: \"–\", saat: \"–\" };\r\n      const d = ts.toDate ? ts.toDate() : new Date(ts);\r\n      const tarih = d.toLocaleDateString(\"tr-TR\", { day:\"2-digit\", month:\"2-digit\", year:\"numeric\" });\r\n      const saat  = d.toLocaleTimeString(\"tr-TR\", { hour:\"2-digit\", minute:\"2-digit\", second:\"2-digit\" });\r\n      return { tarih, saat };\r\n    }\r\n\r\n    function renderTable(docs) {\r\n      const tbody = document.getElementById(\"data-tbody\");\r\n      tbody.innerHTML = \"\";\r\n\r\n      if (docs.length === 0) {\r\n        tbody.innerHTML = `<tr id=\"loading-row\"><td colspan=\"6\">Henüz kayıt yok.</td></tr>`;\r\n        return;\r\n      }\r\n\r\n      docs.forEach(docSnap => {\r\n        const d = docSnap.data();\r\n        const user = usersMap[d.user_id] || {};\r\n        const isimSoyisim = user.user_name || d.user_id || \"–\";\r\n        const { tarih, saat } = formatDate(d.created_at);\r\n        const lat = d.location?.latitude  != null ? d.location.latitude.toFixed(4)  : \"–\";\r\n        const lon = d.location?.longitude != null ? d.location.longitude.toFixed(4) : \"–\";\r\n        const durum = durumuBilgisi(d.emergency_type);\r\n\r\n        const tr = document.createElement(\"tr\");\r\n        tr.innerHTML = `\r\n          <td>${tarih}</td>\r\n          <td>${saat}</td>\r\n          <td>${lat}</td>\r\n          <td>${lon}</td>\r\n          <td class=\"name-col\">${isimSoyisim}</td>\r\n          <td><span class=\"badge ${durum.cls}\">${durum.tr}</span></td>\r\n        `;\r\n        tbody.appendChild(tr);\r\n      });\r\n\r\n      document.getElementById(\"record-count\").textContent = docs.length;\r\n      document.getElementById(\"last-update\").textContent =\r\n        new Date().toLocaleTimeString(\"tr-TR\");\r\n    }\r\n\r\n    async function init() {\r\n      await loadUsers();\r\n\r\n      const q = query(\r\n        collection(db, \"emergency_signals\"),\r\n        orderBy(\"created_at\", \"desc\"),\r\n        limit(100)\r\n      );\r\n\r\n      onSnapshot(q,\r\n        (snapshot) => {\r\n          renderTable(snapshot.docs);\r\n          document.getElementById(\"conn-status\").textContent = \"\uD83D\uDFE2 Canlı bağlı\";\r\n        },\r\n        (err) => {\r\n          console.error(\"Firestore hatası:\", err);\r\n          document.getElementById(\"conn-status\").textContent = \"\uD83D\uDD34 Bağlantı hatası: \" + err.message;\r\n        }\r\n      );\r\n    }\r\n\r\n    init();\r\n  }\r\n</script>\r\n\r\n<!-- Saat / Tarih güncelleme -->\r\n<script>\r\n  function updateClock() {\r\n    const now = new Date();\r\n    document.getElementById(\"clock-time\").textContent =\r\n      now.toLocaleTimeString(\"tr-TR\", { hour:\"2-digit\", minute:\"2-digit\", second:\"2-digit\" });\r\n    document.getElementById(\"clock-date\").textContent =\r\n      now.toLocaleDateString(\"tr-TR\", { day:\"2-digit\", month:\"long\", year:\"numeric\" });\r\n  }\r\n  updateClock();\r\n  setInterval(updateClock, 1000);\r\n</script>\r\n\r\n</body>\r\n</html>\r\n
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/web/index.html b/web/index.html
+--- a/web/index.html	(revision b30d65defd678e8c39a1424be20f3c4020cc7eee)
++++ b/web/index.html	(date 1776952673147)
+@@ -1,212 +1,312 @@
+ <!DOCTYPE html>
+ <html lang="tr">
++
+ <head>
+   <meta charset="UTF-8" />
+   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+   <title>YANKI – Acil İletişim Ağı İzleme Merkezi</title>
+   <style>
+-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
++    *,
++    *::before,
++    *::after {
++        box-sizing: border-box;
++        margin: 0;
++        padding: 0;
++    }
+ 
+     body {
+-      font-family: Arial, Helvetica, sans-serif;
+-      font-size: 13px;
+-      background: #d6dce6;
+-      color: #111;
++        font-family: Arial, Helvetica, sans-serif;
++        font-size: 13px;
++        background: #d6dce6;
++        color: #111;
+     }
+ 
+     /* ── ÜST HEADER ── */
+     #top-bar {
+-      background: #002060;
+-      color: #fff;
+-      display: flex;
+-      align-items: center;
+-      gap: 16px;
+-      padding: 8px 20px;
+-      border-bottom: 3px solid #e8a000;
++        background: #002060;
++        color: #fff;
++        display: flex;
++        align-items: center;
++        gap: 16px;
++        padding: 8px 20px;
++        border-bottom: 3px solid #e8a000;
+     }
++
+     #top-bar .logo {
+-      font-size: 36px;
+-      font-weight: 900;
+-      letter-spacing: -1px;
+-      color: #e8c000;
+-      line-height: 1;
++        font-size: 36px;
++        font-weight: 900;
++        letter-spacing: -1px;
++        color: #e8c000;
++        line-height: 1;
+     }
+-    #top-bar .titles { flex: 1; }
++
++    #top-bar .titles {
++        flex: 1;
++    }
++
+     #top-bar .titles h1 {
+-      font-size: 16px;
+-      font-weight: 700;
+-      text-transform: uppercase;
+-      letter-spacing: .5px;
+-      line-height: 1.3;
++        font-size: 16px;
++        font-weight: 700;
++        text-transform: uppercase;
++        letter-spacing: .5px;
++        line-height: 1.3;
+     }
++
+     #top-bar .titles p {
+-      font-size: 11px;
+-      color: #afc8e8;
+-      margin-top: 2px;
+-      text-transform: uppercase;
+-      letter-spacing: .8px;
++        font-size: 11px;
++        color: #afc8e8;
++        margin-top: 2px;
++        text-transform: uppercase;
++        letter-spacing: .8px;
+     }
++
+     #top-bar .clock {
+-      text-align: right;
+-      font-size: 11px;
+-      color: #afc8e8;
+-      line-height: 1.8;
++        text-align: right;
++        font-size: 11px;
++        color: #afc8e8;
++        line-height: 1.8;
+     }
++
+     #top-bar .clock span {
+-      display: block;
+-      font-size: 22px;
+-      font-weight: 700;
+-      color: #fff;
+-      font-variant-numeric: tabular-nums;
++        display: block;
++        font-size: 22px;
++        font-weight: 700;
++        color: #fff;
++        font-variant-numeric: tabular-nums;
+     }
+ 
+     /* ── NAVİGASYON ── */
+     nav {
+-      background: #003580;
+-      display: flex;
+-      gap: 1px;
++        background: #003580;
++        display: flex;
++        gap: 1px;
+     }
++
+     nav a {
+-      display: block;
+-      padding: 7px 16px;
+-      color: #c8d8f0;
+-      text-decoration: none;
+-      font-size: 12px;
+-      font-weight: 700;
+-      text-transform: uppercase;
+-      letter-spacing: .4px;
+-      transition: background .15s;
++        display: block;
++        padding: 7px 16px;
++        color: #c8d8f0;
++        text-decoration: none;
++        font-size: 12px;
++        font-weight: 700;
++        text-transform: uppercase;
++        letter-spacing: .4px;
++        transition: background .15s;
+     }
+-    nav a:hover, nav a.active { background: #e8a000; color: #fff; }
++
++    nav a:hover,
++    nav a.active {
++        background: #e8a000;
++        color: #fff;
++    }
+ 
+     /* ── ANA PANEL ── */
+     #main {
+-      max-width: 1200px;
+-      margin: 18px auto;
+-      padding: 0 12px;
++        max-width: 1200px;
++        margin: 18px auto;
++        padding: 0 12px;
+     }
+ 
+     /* ── PANEL KUTU ── */
+     .panel {
+-      background: #fff;
+-      border: 1px solid #a0b0c8;
+-      border-radius: 2px;
+-      margin-bottom: 18px;
++        background: #fff;
++        border: 1px solid #a0b0c8;
++        border-radius: 2px;
++        margin-bottom: 18px;
+     }
++
+     .panel-header {
+-      background: #002060;
+-      color: #fff;
+-      padding: 7px 12px;
+-      display: flex;
+-      align-items: center;
+-      justify-content: space-between;
+-      gap: 12px;
++        background: #002060;
++        color: #fff;
++        padding: 7px 12px;
++        display: flex;
++        align-items: center;
++        justify-content: space-between;
++        gap: 12px;
+     }
++
+     .panel-header h2 {
+-      font-size: 13px;
+-      font-weight: 700;
+-      text-transform: uppercase;
+-      letter-spacing: .5px;
++        font-size: 13px;
++        font-weight: 700;
++        text-transform: uppercase;
++        letter-spacing: .5px;
+     }
++
+     .panel-header .meta {
+-      font-size: 11px;
+-      color: #afc8e8;
++        font-size: 11px;
++        color: #afc8e8;
+     }
++
+     .live-dot {
+-      display: inline-block;
+-      width: 8px; height: 8px;
+-      background: #ff4444;
+-      border-radius: 50%;
+-      margin-right: 6px;
+-      animation: blink 1s infinite;
++        display: inline-block;
++        width: 8px;
++        height: 8px;
++        background: #ff4444;
++        border-radius: 50%;
++        margin-right: 6px;
++        animation: blink 1s infinite;
+     }
+-    @keyframes blink { 0%,100%{opacity:1} 50%{opacity:.2} }
++
++    @keyframes blink {
++
++        0%,
++        100% {
++            opacity: 1
++        }
++
++        50% {
++            opacity: .2
++        }
++    }
+ 
+     /* ── TABLO ── */
+-    .table-wrap { overflow-x: auto; }
++    .table-wrap {
++        overflow-x: auto;
++    }
++
+     table {
+-      width: 100%;
+-      border-collapse: collapse;
++        width: 100%;
++        border-collapse: collapse;
+     }
+-    thead tr {
+-      background: #003580;
+-      color: #fff;
++
++    thead tr+
++     {
++        background: #003580;
++        color: #fff;
+     }
++
+     thead th {
+-      padding: 7px 10px;
+-      font-size: 11px;
+-      font-weight: 700;
+-      text-transform: uppercase;
+-      letter-spacing: .5px;
+-      white-space: nowrap;
+-      border-right: 1px solid #1a4090;
+-      text-align: center;
++        padding: 7px 10px;
++        font-size: 11px;
++        font-weight: 700;
++        text-transform: uppercase;
++        letter-spacing: .5px;
++        white-space: nowrap;
++        border-right: 1px solid #1a4090;
++        text-align: center;
+     }
+-    thead th:last-child { border-right: none; }
+-    tbody tr:nth-child(even) { background: #edf2fb; }
+-    tbody tr:nth-child(odd)  { background: #fff; }
+-    tbody tr:hover { background: #fff3cc; }
++
++    thead th:last-child {
++        border-right: none;
++    }
++
++    tbody tr:nth-child(even) {
++        background: #edf2fb;
++    }
++
++    tbody tr:nth-child(odd) {
++        background: #fff;
++    }
++
++    tbody tr:hover {
++        background: #fff3cc;
++    }
++
+     tbody td {
+-      padding: 6px 10px;
+-      border-bottom: 1px solid #dde4ef;
+-      border-right: 1px solid #dde4ef;
+-      text-align: center;
+-      white-space: nowrap;
++        padding: 6px 10px;
++        border-bottom: 1px solid #dde4ef;
++        border-right: 1px solid #dde4ef;
++        text-align: center;
++        white-space: nowrap;
+     }
+-    tbody td:last-child { border-right: none; }
+-    tbody td.name-col { text-align: left; font-weight: 600; white-space: normal; }
++
++    tbody td:last-child {
++        border-right: none;
++    }
++
++    tbody td.name-col {
++        text-align: left;
++        font-weight: 600;
++        white-space: normal;
++    }
+ 
+     /* Durum renkleri */
+     .badge {
+-      display: inline-block;
+-      padding: 2px 8px;
+-      border-radius: 10px;
+-      font-size: 11px;
+-      font-weight: 700;
+-      letter-spacing: .3px;
+-      text-transform: uppercase;
++        display: inline-block;
++        padding: 2px 8px;
++        border-radius: 10px;
++        font-size: 11px;
++        font-weight: 700;
++        letter-spacing: .3px;
++        text-transform: uppercase;
+     }
+-    .badge-FIRE      { background: #ff4444; color: #fff; }
+-    .badge-INJURED   { background: #e67e00; color: #fff; }
+-    .badge-TRAPPED   { background: #8b0000; color: #fff; }
+-    .badge-FLOOD     { background: #1565c0; color: #fff; }
+-    .badge-SAFE      { background: #2e7d32; color: #fff; }
+-    .badge-HELP      { background: #6a0dad; color: #fff; }
+-    .badge-UNKNOWN   { background: #757575; color: #fff; }
+-    .badge-default   { background: #004d99; color: #fff; }
++
++    .badge-FIRE {
++        background: #ff4444;
++        color: #fff;
++    }
++
++    .badge-INJURED {
++        background: #e67e00;
++        color: #fff;
++    }
++
++    .badge-TRAPPED {
++        background: #8b0000;
++        color: #fff;
++    }
++
++    .badge-FLOOD {
++        background: #1565c0;
++        color: #fff;
++    }
++
++    .badge-SAFE {
++        background: #2e7d32;
++        color: #fff;
++    }
++
++    .badge-HELP {
++        background: #6a0dad;
++        color: #fff;
++    }
++
++    .badge-UNKNOWN {
++        background: #757575;
++        color: #fff;
++    }
++
++    .badge-default {
++        background: #004d99;
++        color: #fff;
++    }
+ 
+     /* Yükleniyor */
+     #loading-row td {
+-      padding: 30px;
+-      color: #666;
+-      font-style: italic;
+-      text-align: center;
++        padding: 30px;
++        color: #666;
++        font-style: italic;
++        text-align: center;
+     }
+ 
+     /* ── DURUM ÇUBUĞU ── */
+     #status-bar {
+-      background: #002060;
+-      color: #afc8e8;
+-      font-size: 11px;
+-      padding: 5px 20px;
+-      display: flex;
+-      justify-content: space-between;
++        background: #002060;
++        color: #afc8e8;
++        font-size: 11px;
++        padding: 5px 20px;
++        display: flex;
++        justify-content: space-between;
+     }
+ 
+     /* ── KURULUM UYARISI ── */
+     #config-warning {
+-      background: #fff3cd;
+-      border: 1px solid #e8a000;
+-      border-radius: 4px;
+-      padding: 14px 18px;
+-      margin-bottom: 14px;
+-      font-size: 12px;
+-      line-height: 1.7;
+-      display: none;
++        background: #fff3cd;
++        border: 1px solid #e8a000;
++        border-radius: 4px;
++        padding: 14px 18px;
++        margin-bottom: 14px;
++        font-size: 12px;
++        line-height: 1.7;
++        display: none;
+     }
+-    #config-warning strong { color: #002060; }
++
++    #config-warning strong {
++        color: #002060;
++    }
+   </style>
+ </head>
++
+ <body>
+ 
+ <!-- ── ÜST HEADER ── -->
+@@ -249,27 +349,27 @@
+         Son Acil İletişim Kayıtları
+       </h2>
+       <span class="meta">
+-        Son güncelleme: <strong id="last-update">–</strong> &nbsp;|&nbsp;
+-        Toplam kayıt: <strong id="record-count">0</strong>
+-      </span>
++                    Son güncelleme: <strong id="last-update">–</strong> &nbsp;|&nbsp;
++                    Toplam kayıt: <strong id="record-count">0</strong>
++                </span>
+     </div>
+ 
+     <div class="table-wrap">
+       <table>
+         <thead>
+-          <tr>
+-            <th>Tarih</th>
+-            <th>Saat</th>
+-            <th>Enlem (K)</th>
+-            <th>Boylam (D)</th>
+-            <th style="text-align:left; min-width:160px;">İsim Soyisim</th>
+-            <th>Durum</th>
+-          </tr>
++        <tr>
++          <th>Tarih</th>
++          <th>Saat</th>
++          <th>Enlem (K)</th>
++          <th>Boylam (D)</th>
++          <th style="text-align:left; min-width:160px;">İsim Soyisim</th>
++          <th>Durum</th>
++        </tr>
+         </thead>
+         <tbody id="data-tbody">
+-          <tr id="loading-row">
+-            <td colspan="6">Veriler yükleniyor…</td>
+-          </tr>
++        <tr id="loading-row">
++          <td colspan="6">Veriler yükleniyor…</td>
++        </tr>
+         </tbody>
+       </table>
+     </div>
+@@ -284,139 +384,139 @@
+ </div>
+ 
+ 
+-<!-- ════════════════════════════════════════════════
+-     FİREBASE YAPILANDIRMASI
+-     Firebase Console → Proje Ayarları → Uygulamalar → Web
+-     bölümünden aldığınız firebaseConfig nesnesini buraya yapıştırın.
+-     ════════════════════════════════════════════════ -->
+ <script type="module">
+-  import { initializeApp }   from "https://www.gstatic.com/firebasejs/11.7.1/firebase-app.js";
++  import { initializeApp } from "https://www.gstatic.com/firebasejs/11.7.1/firebase-app.js";
+   import { getFirestore, collection, query, orderBy, limit, onSnapshot, getDocs }
+-    from "https://www.gstatic.com/firebasejs/11.7.1/firebase-firestore.js";
++      from "https://www.gstatic.com/firebasejs/11.7.1/firebase-firestore.js";
+ 
+-  // ▼▼▼ BU BÖLÜMü KENDİ FİREBASE BİLGİLERİNİZLE DEĞİŞTİRİN ▼▼▼
+   const firebaseConfig = {
++      apiKey: "AIzaSyC979HjSm-h0ac-PZjxQHz--icUMJKuGVM",
++      authDomain: "yankiapp-472b97c4.firebaseapp.com",
++      projeId: "yankiapp-472b97c4",
++      depolama kovası: "yankiapp-472b97c4.firebasestorage.app",
++      messagingSenderId: "832552007678",
++      uygulama kimliği: "1:832552007678:web:319ee97b58adfd2ecbb2af"
+   };
+-  // ▲▲▲ YAPILANDIRMA SONU ▲▲▲
+ 
+-  // Placeholder kontrolü
+-    document.getElementById("config-warning").style.display = "block";
+-    document.getElementById("loading-row").querySelector("td").textContent =
++
++  document.getElementById("config-warning").style.display = "block";
++  document.getElementById("loading-row").querySelector("td").textContent =
+       "⚠️ Firebase yapılandırması eksik. Lütfen index.html dosyasını düzenleyin.";
+-    document.getElementById("conn-status").textContent = "⚠️ Yapılandırma eksik";
+-  } else {
+-    startApp(firebaseConfig);
++  document.getElementById("conn-status").textContent = "⚠️ Yapılandırma eksik";
++} else {
++      startApp(firebaseConfig);
+   }
+ 
+   function startApp(config) {
+-    const app = initializeApp(config);
+-    const db  = getFirestore(app);
++      const app = initializeApp(config);
++      const db = getFirestore(app);
+ 
+-    let usersMap = {};
++      let usersMap = {};
+ 
+-    // Tüm kullanıcıları bir kez çek (isim arama için)
+-    async function loadUsers() {
+-      try {
+-        const snap = await getDocs(collection(db, "users"));
+-        snap.forEach(doc => { usersMap[doc.id] = doc.data(); });
+-      } catch (e) {
+-        console.warn("Kullanıcı listesi alınamadı:", e.message);
+-      }
+-    }
++
++      async function loadUsers() {
++          try {
++              const snap = await getDocs(collection(db, "users"));
++              snap.forEach(doc => { usersMap[doc.id] = doc.data(); });
++          } catch (e) {
++              console.warn("Kullanıcı listesi alınamadı:", e.message);
++          }
++      }
+ 
+-    function durumuBilgisi(tip) {
+-      const map = {
+-        FIRE:    { tr: "YANGIN",    cls: "badge-FIRE"    },
+-        INJURED: { tr: "YARALANDI", cls: "badge-INJURED" },
+-        TRAPPED: { tr: "MAHSUR",   cls: "badge-TRAPPED" },
+-        FLOOD:   { tr: "SEL",       cls: "badge-FLOOD"   },
+-        SAFE:    { tr: "GÜVENDE",   cls: "badge-SAFE"    },
+-        HELP:    { tr: "YARDIM",    cls: "badge-HELP"    },
+-      };
+-      const key = (tip || "").toUpperCase();
+-      return map[key] || { tr: tip || "BİLİNMİYOR", cls: "badge-default" };
+-    }
++      function durumuBilgisi(tip) {
++          const map = {
++              FIRE: { tr: "YANGIN", cls: "badge-FIRE" },
++              INJURED: { tr: "YARALANDI", cls: "badge-INJURED" },
++              TRAPPED: { tr: "MAHSUR", cls: "badge-TRAPPED" },
++              FLOOD: { tr: "SEL", cls: "badge-FLOOD" },
++              SAFE: { tr: "GÜVENDE", cls: "badge-SAFE" },
++              HELP: { tr: "YARDIM", cls: "badge-HELP" },
++          };
++          const key = (tip || "").toUpperCase();
++          return map[key] || { tr: tip || "BİLİNMİYOR", cls: "badge-default" };
++      }
+ 
+-    function formatDate(ts) {
+-      if (!ts) return { tarih: "–", saat: "–" };
+-      const d = ts.toDate ? ts.toDate() : new Date(ts);
+-      const tarih = d.toLocaleDateString("tr-TR", { day:"2-digit", month:"2-digit", year:"numeric" });
+-      const saat  = d.toLocaleTimeString("tr-TR", { hour:"2-digit", minute:"2-digit", second:"2-digit" });
+-      return { tarih, saat };
+-    }
++      function formatDate(ts) {
++          if (!ts) return { tarih: "–", saat: "–" };
++          const d = ts.toDate ? ts.toDate() : new Date(ts);
++          const tarih = d.toLocaleDateString("tr-TR", { day: "2-digit", month: "2-digit", year: "numeric" });
++          const saat = d.toLocaleTimeString("tr-TR", { hour: "2-digit", minute: "2-digit", second: "2-digit" });
++          return { tarih, saat };
++      }
+ 
+-    function renderTable(docs) {
+-      const tbody = document.getElementById("data-tbody");
+-      tbody.innerHTML = "";
++      function renderTable(docs) {
++          const tbody = document.getElementById("data-tbody");
++          tbody.innerHTML = "";
+ 
+-      if (docs.length === 0) {
+-        tbody.innerHTML = `<tr id="loading-row"><td colspan="6">Henüz kayıt yok.</td></tr>`;
+-        return;
+-      }
++          if (docs.length === 0) {
++              tbody.innerHTML = `<tr id="loading-row"><td colspan="6">Henüz kayıt yok.</td></tr>`;
++              return;
++          }
+ 
+-      docs.forEach(docSnap => {
+-        const d = docSnap.data();
+-        const user = usersMap[d.user_id] || {};
+-        const isimSoyisim = user.user_name || d.user_id || "–";
+-        const { tarih, saat } = formatDate(d.created_at);
+-        const lat = d.location?.latitude  != null ? d.location.latitude.toFixed(4)  : "–";
+-        const lon = d.location?.longitude != null ? d.location.longitude.toFixed(4) : "–";
+-        const durum = durumuBilgisi(d.emergency_type);
++          docs.forEach(docSnap => {
++              const d = docSnap.data();
++              const user = usersMap[d.user_id] || {};
++              const isimSoyisim = user.user_name || d.user_id || "–";
++              const { tarih, saat } = formatDate(d.created_at);
++              const lat = d.location?.latitude != null ? d.location.latitude.toFixed(4) : "–";
++              const lon = d.location?.longitude != null ? d.location.longitude.toFixed(4) : "–";
++              const durum = durumuBilgisi(d.emergency_type);
+ 
+-        const tr = document.createElement("tr");
+-        tr.innerHTML = `
+-          <td>${tarih}</td>
+-          <td>${saat}</td>
+-          <td>${lat}</td>
+-          <td>${lon}</td>
+-          <td class="name-col">${isimSoyisim}</td>
+-          <td><span class="badge ${durum.cls}">${durum.tr}</span></td>
+-        `;
+-        tbody.appendChild(tr);
+-      });
++              const tr = document.createElement("tr");
++              tr.innerHTML = `
++    <td>${tarih}</td>
++    <td>${saat}</td>
++    <td>${lat}</td>
++    <td>${lon}</td>
++    <td class="name-col">${isimSoyisim}</td>
++    <td><span class="badge ${durum.cls}">${durum.tr}</span></td>
++  `;
++              tbody.appendChild(tr);
++          });
+ 
+-      document.getElementById("record-count").textContent = docs.length;
+-      document.getElementById("last-update").textContent =
+-        new Date().toLocaleTimeString("tr-TR");
+-    }
++          document.getElementById("record-count").textContent = docs.length;
++          document.getElementById("last-update").textContent =
++              new Date().toLocaleTimeString("tr-TR");
++      }
+ 
+-    async function init() {
+-      await loadUsers();
++      async function init() {
++          await loadUsers();
+ 
+-      const q = query(
+-        collection(db, "emergency_signals"),
+-        orderBy("created_at", "desc"),
+-        limit(100)
+-      );
++          const q = query(
++              collection(db, "emergency_signals"),
++              orderBy("created_at", "desc"),
++              limit(100)
++          );
+ 
+-      onSnapshot(q,
+-        (snapshot) => {
+-          renderTable(snapshot.docs);
+-          document.getElementById("conn-status").textContent = "🟢 Canlı bağlı";
+-        },
+-        (err) => {
+-          console.error("Firestore hatası:", err);
+-          document.getElementById("conn-status").textContent = "🔴 Bağlantı hatası: " + err.message;
+-        }
+-      );
+-    }
++          onSnapshot(q,
++              (snapshot) => {
++                  renderTable(snapshot.docs);
++                  document.getElementById("conn-status").textContent = "🟢 Canlı bağlı";
++              },
++              (err) => {
++                  console.error("Firestore hatası:", err);
++                  document.getElementById("conn-status").textContent = "🔴 Bağlantı hatası: " + err.message;
++              }
++          );
++      }
+ 
+-    init();
++      init();
+   }
+ </script>
+ 
+ <!-- Saat / Tarih güncelleme -->
+ <script>
+   function updateClock() {
+-    const now = new Date();
+-    document.getElementById("clock-time").textContent =
+-      now.toLocaleTimeString("tr-TR", { hour:"2-digit", minute:"2-digit", second:"2-digit" });
+-    document.getElementById("clock-date").textContent =
+-      now.toLocaleDateString("tr-TR", { day:"2-digit", month:"long", year:"numeric" });
++      const now = new Date();
++      document.getElementById("clock-time").textContent =
++          now.toLocaleTimeString("tr-TR", { hour: "2-digit", minute: "2-digit", second: "2-digit" });
++      document.getElementById("clock-date").textContent =
++          now.toLocaleDateString("tr-TR", { day: "2-digit", month: "long", year: "numeric" });
+   }
+   updateClock();
+   setInterval(updateClock, 1000);
+ </script>
+ 
+ </body>
+-</html>
++
++</html>
+\ No newline at end of file
+Index: .idea/workspace.xml
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+><?xml version=\"1.0\" encoding=\"UTF-8\"?>\r\n<project version=\"4\">\r\n  <component name=\"AndroidLayouts\">\r\n    <shared>\r\n      <config />\r\n    </shared>\r\n  </component>\r\n  <component name=\"AutoImportSettings\">\r\n    <option name=\"autoReloadType\" value=\"NONE\" />\r\n  </component>\r\n  <component name=\"ChangeListManager\">\r\n    <list default=\"true\" id=\"7b4b2efb-e797-422d-b874-9627a0cb36a3\" name=\"Changes\" comment=\"current\">\r\n      <change afterPath=\"$PROJECT_DIR$/android-app/src/main/kotlin/com.bedir.yanki/di/StorageModule.kt\" afterDir=\"false\" />\r\n      <change afterPath=\"$PROJECT_DIR$/android-app/src/main/kotlin/com.bedir.yanki/ui/main/components/NeighborMap.kt\" afterDir=\"false\" />\r\n      <change beforePath=\"$PROJECT_DIR$/.gradle/8.13/checksums/checksums.lock\" beforeDir=\"false\" afterPath=\"$PROJECT_DIR$/.gradle/8.13/checksums/checksums.lock\" afterDir=\"false\" />\r\n      <change beforePath=\"$PROJECT_DIR$/.gradle/8.13/checksums/md5-checksums.bin\" beforeDir=\"false\" afterPath=\"$PROJECT_DIR$/.gradle/8.13/checksums/md5-checksums.bin\" afterDir=\"false\" />\r\n      <change beforePath=\"$PROJECT_DIR$/.gradle/8.13/checksums/sha1-checksums.bin\" beforeDir=\"false\" afterPath=\"$PROJECT_DIR$/.gradle/8.13/checksums/sha1-checksums.bin\" afterDir=\"false\" />\r\n      <change beforePath=\"$PROJECT_DIR$/.gradle/8.13/executionHistory/executionHistory.lock\" beforeDir=\"false\" afterPath=\"$PROJECT_DIR$/.gradle/8.13/executionHistory/executionHistory.lock\" afterDir=\"false\" />\r\n      <change beforePath=\"$PROJECT_DIR$/.gradle/8.13/fileHashes/fileHashes.bin\" beforeDir=\"false\" afterPath=\"$PROJECT_DIR$/.gradle/8.13/fileHashes/fileHashes.bin\" afterDir=\"false\" />\r\n      <change beforePath=\"$PROJECT_DIR$/.gradle/8.13/fileHashes/fileHashes.lock\" beforeDir=\"false\" afterPath=\"$PROJECT_DIR$/.gradle/8.13/fileHashes/fileHashes.lock\" afterDir=\"false\" />\r\n      <change beforePath=\"$PROJECT_DIR$/.gradle/8.13/fileHashes/resourceHashesCache.bin\" beforeDir=\"false\" afterPath=\"$PROJECT_DIR$/.gradle/8.13/fileHashes/resourceHashesCache.bin\" afterDir=\"false\" />\r\n      <change beforePath=\"$PROJECT_DIR$/.gradle/8.2/checksums/checksums.lock\" beforeDir=\"false\" />\r\n      <change beforePath=\"$PROJECT_DIR$/.gradle/8.2/checksums/md5-checksums.bin\" beforeDir=\"false\" />\r\n      <change beforePath=\"$PROJECT_DIR$/.gradle/8.2/checksums/sha1-checksums.bin\" beforeDir=\"false\" />\r\n      <change beforePath=\"$PROJECT_DIR$/.gradle/8.2/dependencies-accessors/dependencies-accessors.lock\" beforeDir=\"false\" />\r\n      <change beforePath=\"$PROJECT_DIR$/.gradle/8.2/dependencies-accessors/gc.properties\" beforeDir=\"false\" />\r\n      <change beforePath=\"$PROJECT_DIR$/.gradle/8.2/executionHistory/executionHistory.lock\" beforeDir=\"false\" />\r\n      <change beforePath=\"$PROJECT_DIR$/.gradle/8.2/fileChanges/last-build.bin\" beforeDir=\"false\" />\r\n      <change beforePath=\"$PROJECT_DIR$/.gradle/8.2/fileHashes/fileHashes.bin\" beforeDir=\"false\" />\r\n      <change beforePath=\"$PROJECT_DIR$/.gradle/8.2/fileHashes/fileHashes.lock\" beforeDir=\"false\" />\r\n      <change beforePath=\"$PROJECT_DIR$/.gradle/8.2/fileHashes/resourceHashesCache.bin\" beforeDir=\"false\" />\r\n      <change beforePath=\"$PROJECT_DIR$/.gradle/8.2/gc.properties\" beforeDir=\"false\" />\r\n      <change beforePath=\"$PROJECT_DIR$/.gradle/9.0.0/checksums/checksums.lock\" beforeDir=\"false\" />\r\n      <change beforePath=\"$PROJECT_DIR$/.gradle/9.0.0/checksums/md5-checksums.bin\" beforeDir=\"false\" />\r\n      <change beforePath=\"$PROJECT_DIR$/.gradle/9.0.0/checksums/sha1-checksums.bin\" beforeDir=\"false\" />\r\n      <change beforePath=\"$PROJECT_DIR$/.gradle/9.0.0/fileChanges/last-build.bin\" beforeDir=\"false\" />\r\n      <change beforePath=\"$PROJECT_DIR$/.gradle/9.0.0/fileHashes/fileHashes.lock\" beforeDir=\"false\" />\r\n      <change beforePath=\"$PROJECT_DIR$/.gradle/9.0.0/gc.properties\" beforeDir=\"false\" />\r\n      <change beforePath=\"$PROJECT_DIR$/.gradle/buildOutputCleanup/buildOutputCleanup.lock\" beforeDir=\"false\" afterPath=\"$PROJECT_DIR$/.gradle/buildOutputCleanup/buildOutputCleanup.lock\" afterDir=\"false\" />\r\n      <change beforePath=\"$PROJECT_DIR$/.gradle/buildOutputCleanup/cache.properties\" beforeDir=\"false\" afterPath=\"$PROJECT_DIR$/.gradle/buildOutputCleanup/cache.properties\" afterDir=\"false\" />\r\n      <change beforePath=\"$PROJECT_DIR$/.gradle/config.properties\" beforeDir=\"false\" afterPath=\"$PROJECT_DIR$/.gradle/config.properties\" afterDir=\"false\" />\r\n      <change beforePath=\"$PROJECT_DIR$/.idea/appInsightsSettings.xml\" beforeDir=\"false\" afterPath=\"$PROJECT_DIR$/.idea/appInsightsSettings.xml\" afterDir=\"false\" />\r\n      <change beforePath=\"$PROJECT_DIR$/.idea/compiler.xml\" beforeDir=\"false\" afterPath=\"$PROJECT_DIR$/.idea/compiler.xml\" afterDir=\"false\" />\r\n      <change beforePath=\"$PROJECT_DIR$/.idea/deploymentTargetSelector.xml\" beforeDir=\"false\" afterPath=\"$PROJECT_DIR$/.idea/deploymentTargetSelector.xml\" afterDir=\"false\" />\r\n      <change beforePath=\"$PROJECT_DIR$/.idea/gradle.xml\" beforeDir=\"false\" afterPath=\"$PROJECT_DIR$/.idea/gradle.xml\" afterDir=\"false\" />\r\n      <change beforePath=\"$PROJECT_DIR$/.idea/misc.xml\" beforeDir=\"false\" afterPath=\"$PROJECT_DIR$/.idea/misc.xml\" afterDir=\"false\" />\r\n      <change beforePath=\"$PROJECT_DIR$/.idea/workspace.xml\" beforeDir=\"false\" afterPath=\"$PROJECT_DIR$/.idea/workspace.xml\" afterDir=\"false\" />\r\n      <change beforePath=\"$PROJECT_DIR$/android-app/build.gradle.kts\" beforeDir=\"false\" afterPath=\"$PROJECT_DIR$/android-app/build.gradle.kts\" afterDir=\"false\" />\r\n      <change beforePath=\"$PROJECT_DIR$/android-app/src/main/AndroidManifest.xml\" beforeDir=\"false\" afterPath=\"$PROJECT_DIR$/android-app/src/main/AndroidManifest.xml\" afterDir=\"false\" />\r\n      <change beforePath=\"$PROJECT_DIR$/android-app/src/main/kotlin/com.bedir.yanki/MainActivity.kt\" beforeDir=\"false\" afterPath=\"$PROJECT_DIR$/android-app/src/main/kotlin/com.bedir.yanki/MainActivity.kt\" afterDir=\"false\" />\r\n      <change beforePath=\"$PROJECT_DIR$/android-app/src/main/kotlin/com.bedir.yanki/data/local/YankiDatabase.kt\" beforeDir=\"false\" afterPath=\"$PROJECT_DIR$/android-app/src/main/kotlin/com.bedir.yanki/data/local/YankiDatabase.kt\" afterDir=\"false\" />\r\n      <change beforePath=\"$PROJECT_DIR$/android-app/src/main/kotlin/com.bedir.yanki/data/local/dao/MessageDao.kt\" beforeDir=\"false\" afterPath=\"$PROJECT_DIR$/android-app/src/main/kotlin/com.bedir.yanki/data/local/dao/MessageDao.kt\" afterDir=\"false\" />\r\n      <change beforePath=\"$PROJECT_DIR$/android-app/src/main/kotlin/com.bedir.yanki/data/local/dao/UserDao.kt\" beforeDir=\"false\" afterPath=\"$PROJECT_DIR$/android-app/src/main/kotlin/com.bedir.yanki/data/local/dao/UserDao.kt\" afterDir=\"false\" />\r\n      <change beforePath=\"$PROJECT_DIR$/android-app/src/main/kotlin/com.bedir.yanki/data/local/entity/UserEntity.kt\" beforeDir=\"false\" afterPath=\"$PROJECT_DIR$/android-app/src/main/kotlin/com.bedir.yanki/data/local/entity/UserEntity.kt\" afterDir=\"false\" />\r\n      <change beforePath=\"$PROJECT_DIR$/android-app/src/main/kotlin/com.bedir.yanki/data/mapper/ProtoMapper.kt\" beforeDir=\"false\" afterPath=\"$PROJECT_DIR$/android-app/src/main/kotlin/com.bedir.yanki/data/mapper/ProtoMapper.kt\" afterDir=\"false\" />\r\n      <change beforePath=\"$PROJECT_DIR$/android-app/src/main/kotlin/com.bedir.yanki/data/remote/api/YankiNetworkClient.kt\" beforeDir=\"false\" afterPath=\"$PROJECT_DIR$/android-app/src/main/kotlin/com.bedir.yanki/data/remote/api/YankiNetworkClient.kt\" afterDir=\"false\" />\r\n      <change beforePath=\"$PROJECT_DIR$/android-app/src/main/kotlin/com.bedir.yanki/data/remote/mesh/connectivity/BleMeshManager.kt\" beforeDir=\"false\" afterPath=\"$PROJECT_DIR$/android-app/src/main/kotlin/com.bedir.yanki/data/remote/mesh/connectivity/BleMeshManager.kt\" afterDir=\"false\" />\r\n      <change beforePath=\"$PROJECT_DIR$/android-app/src/main/kotlin/com.bedir.yanki/data/remote/mesh/connectivity/WifiAwareManager.kt\" beforeDir=\"false\" afterPath=\"$PROJECT_DIR$/android-app/src/main/kotlin/com.bedir.yanki/data/remote/mesh/connectivity/WifiAwareManager.kt\" afterDir=\"false\" />\r\n      <change beforePath=\"$PROJECT_DIR$/android-app/src/main/kotlin/com.bedir.yanki/data/remote/sync/SyncWorker.kt\" beforeDir=\"false\" afterPath=\"$PROJECT_DIR$/android-app/src/main/kotlin/com.bedir.yanki/data/remote/sync/SyncWorker.kt\" afterDir=\"false\" />\r\n      <change beforePath=\"$PROJECT_DIR$/android-app/src/main/kotlin/com.bedir.yanki/di/DatabaseModule.kt\" beforeDir=\"false\" afterPath=\"$PROJECT_DIR$/android-app/src/main/kotlin/com.bedir.yanki/di/DatabaseModule.kt\" afterDir=\"false\" />\r\n      <change beforePath=\"$PROJECT_DIR$/android-app/src/main/kotlin/com.bedir.yanki/di/NetworkModule.kt\" beforeDir=\"false\" afterPath=\"$PROJECT_DIR$/android-app/src/main/kotlin/com.bedir.yanki/di/NetworkModule.kt\" afterDir=\"false\" />\r\n      <change beforePath=\"$PROJECT_DIR$/android-app/src/main/kotlin/com.bedir.yanki/repository/YankiRepository.kt\" beforeDir=\"false\" afterPath=\"$PROJECT_DIR$/android-app/src/main/kotlin/com.bedir.yanki/repository/YankiRepository.kt\" afterDir=\"false\" />\r\n      <change beforePath=\"$PROJECT_DIR$/android-app/src/main/kotlin/com.bedir.yanki/security/SecurityManager.kt\" beforeDir=\"false\" afterPath=\"$PROJECT_DIR$/android-app/src/main/kotlin/com.bedir.yanki/security/SecurityManager.kt\" afterDir=\"false\" />\r\n      <change beforePath=\"$PROJECT_DIR$/android-app/src/main/kotlin/com.bedir.yanki/services/MeshService.kt\" beforeDir=\"false\" afterPath=\"$PROJECT_DIR$/android-app/src/main/kotlin/com.bedir.yanki/services/MeshService.kt\" afterDir=\"false\" />\r\n      <change beforePath=\"$PROJECT_DIR$/android-app/src/main/kotlin/com.bedir.yanki/ui/emergency/EmergencySOSScreen.kt\" beforeDir=\"false\" afterPath=\"$PROJECT_DIR$/android-app/src/main/kotlin/com.bedir.yanki/ui/emergency/EmergencySOSScreen.kt\" afterDir=\"false\" />\r\n      <change beforePath=\"$PROJECT_DIR$/android-app/src/main/kotlin/com.bedir.yanki/ui/main/MainDashboard.kt\" beforeDir=\"false\" afterPath=\"$PROJECT_DIR$/android-app/src/main/kotlin/com.bedir.yanki/ui/main/MainDashboard.kt\" afterDir=\"false\" />\r\n      <change beforePath=\"$PROJECT_DIR$/android-app/src/main/kotlin/com.bedir.yanki/ui/messages/ChatDetailScreen.kt\" beforeDir=\"false\" afterPath=\"$PROJECT_DIR$/android-app/src/main/kotlin/com.bedir.yanki/ui/messages/ChatDetailScreen.kt\" afterDir=\"false\" />\r\n      <change beforePath=\"$PROJECT_DIR$/android-app/src/main/kotlin/com.bedir.yanki/ui/messages/MessagesListScreen.kt\" beforeDir=\"false\" afterPath=\"$PROJECT_DIR$/android-app/src/main/kotlin/com.bedir.yanki/ui/messages/MessagesListScreen.kt\" afterDir=\"false\" />\r\n      <change beforePath=\"$PROJECT_DIR$/android-app/src/main/kotlin/com.bedir.yanki/ui/navigation/MainScreen.kt\" beforeDir=\"false\" afterPath=\"$PROJECT_DIR$/android-app/src/main/kotlin/com.bedir.yanki/ui/navigation/MainScreen.kt\" afterDir=\"false\" />\r\n      <change beforePath=\"$PROJECT_DIR$/android-app/src/main/kotlin/com.bedir.yanki/ui/viewmodel/MeshViewModel.kt\" beforeDir=\"false\" afterPath=\"$PROJECT_DIR$/android-app/src/main/kotlin/com.bedir.yanki/ui/viewmodel/MeshViewModel.kt\" afterDir=\"false\" />\r\n      <change beforePath=\"$PROJECT_DIR$/backend-server/server.js\" beforeDir=\"false\" afterPath=\"$PROJECT_DIR$/backend-server/server.js\" afterDir=\"false\" />\r\n      <change beforePath=\"$PROJECT_DIR$/build.gradle.kts\" beforeDir=\"false\" afterPath=\"$PROJECT_DIR$/build.gradle.kts\" afterDir=\"false\" />\r\n      <change beforePath=\"$PROJECT_DIR$/build/reports/problems/problems-report.html\" beforeDir=\"false\" afterPath=\"$PROJECT_DIR$/build/reports/problems/problems-report.html\" afterDir=\"false\" />\r\n      <change beforePath=\"$PROJECT_DIR$/gradle.properties\" beforeDir=\"false\" afterPath=\"$PROJECT_DIR$/gradle.properties\" afterDir=\"false\" />\r\n      <change beforePath=\"$PROJECT_DIR$/gradle/wrapper/gradle-wrapper.properties\" beforeDir=\"false\" afterPath=\"$PROJECT_DIR$/gradle/wrapper/gradle-wrapper.properties\" afterDir=\"false\" />\r\n      <change beforePath=\"$PROJECT_DIR$/protocols/yanki.proto\" beforeDir=\"false\" afterPath=\"$PROJECT_DIR$/protocols/yanki.proto\" afterDir=\"false\" />\r\n      <change beforePath=\"$PROJECT_DIR$/settings.gradle.kts\" beforeDir=\"false\" afterPath=\"$PROJECT_DIR$/settings.gradle.kts\" afterDir=\"false\" />\r\n    </list>\r\n    <option name=\"SHOW_DIALOG\" value=\"false\" />\r\n    <option name=\"HIGHLIGHT_CONFLICTS\" value=\"true\" />\r\n    <option name=\"HIGHLIGHT_NON_ACTIVE_CHANGELIST\" value=\"false\" />\r\n    <option name=\"LAST_RESOLUTION\" value=\"IGNORE\" />\r\n  </component>\r\n  <component name=\"ClangdSettings\">\r\n    <option name=\"formatViaClangd\" value=\"false\" />\r\n  </component>\r\n  <component name=\"ExecutionTargetManager\" SELECTED_TARGET=\"device_and_snapshot_combo_box_target[LocalEmulator::path=C:\\Users\\bedir\\.android\\avd\\Pixel_7.avd]\" />\r\n  <component name=\"ExternalProjectsData\">\r\n    <projectState path=\"$PROJECT_DIR$\">\r\n      <ProjectState />\r\n    </projectState>\r\n  </component>\r\n  <component name=\"FileTemplateManagerImpl\">\r\n    <option name=\"RECENT_TEMPLATES\">\r\n      <list>\r\n        <option value=\"Kotlin File\" />\r\n        <option value=\"Kotlin Class\" />\r\n      </list>\r\n    </option>\r\n  </component>\r\n  <component name=\"Git.Settings\">\r\n    <option name=\"RECENT_GIT_ROOT_PATH\" value=\"$PROJECT_DIR$\" />\r\n  </component>\r\n  <component name=\"GitHubPullRequestSearchHistory\">{\r\n  &quot;lastFilter&quot;: {\r\n    &quot;state&quot;: &quot;OPEN&quot;,\r\n    &quot;assignee&quot;: &quot;Bedirhan-Erik&quot;\r\n  }\r\n}</component>\r\n  <component name=\"GithubPullRequestsUISettings\">{\r\n  &quot;selectedUrlAndAccountId&quot;: {\r\n    &quot;url&quot;: &quot;https://github.com/Bedirhan-Erik/YANKI-Decentralized-Mesh-Network.git&quot;,\r\n    &quot;accountId&quot;: &quot;5a19109c-becd-4ef6-85d4-53a17a6334cc&quot;\r\n  }\r\n}</component>\r\n  <component name=\"GradleScriptDefinitionsStorage\" workingDir=\"$PROJECT_DIR$\" gradleHome=\"C:\\Users\\bedir\\.gradle\\wrapper\\dists\\gradle-8.10.2-bin\\a04bxjujx95o3nb99gddekhwo\\gradle-8.10.2\" javaHome=\"C:\\Program Files\\Android\\Android Studio1\\jbr\" gradleVersion=\"8.10.2\" />\r\n  <component name=\"ProblemsViewState\">\r\n    <option name=\"selectedTabId\" value=\"CurrentFile\" />\r\n  </component>\r\n  <component name=\"ProjectColorInfo\">{\r\n  &quot;associatedIndex&quot;: 8\r\n}</component>\r\n  <component name=\"ProjectId\" id=\"3BcfbaIzwphZDiGD2g2xGsRR3sj\" />\r\n  <component name=\"ProjectLevelVcsManager\">\r\n    <ConfirmationsSetting value=\"2\" id=\"Add\" />\r\n  </component>\r\n  <component name=\"ProjectViewState\">\r\n    <option name=\"hideEmptyMiddlePackages\" value=\"true\" />\r\n    <option name=\"showLibraryContents\" value=\"true\" />\r\n  </component>\r\n  <component name=\"PropertiesComponent\"><![CDATA[{\r\n  \"keyToString\": {\r\n    \"Android App.Yanki-App.executor\": \"Run\",\r\n    \"Android App.android-app.executor\": \"Run\",\r\n    \"GradleDaemonJvmCriteriaMigrationNotification.isNotificationDisabled\": \"true\",\r\n    \"ModuleVcsDetector.initialDetectionPerformed\": \"true\",\r\n    \"RunOnceActivity.ShowReadmeOnStart\": \"true\",\r\n    \"RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager.252\": \"true\",\r\n    \"RunOnceActivity.cidr.known.project.marker\": \"true\",\r\n    \"RunOnceActivity.git.unshallow\": \"true\",\r\n    \"RunOnceActivity.readMode.enableVisualFormatting\": \"true\",\r\n    \"cf.first.check.clang-format\": \"false\",\r\n    \"cidr.known.project.marker\": \"true\",\r\n    \"com.google.services.firebase.aqiPopupShown\": \"true\",\r\n    \"git-widget-placeholder\": \"master\",\r\n    \"kotlin-language-version-configured\": \"true\",\r\n    \"project.structure.last.edited\": \"Modules\",\r\n    \"project.structure.proportion\": \"0.17\",\r\n    \"project.structure.side.proportion\": \"0.2\",\r\n    \"settings.editor.selected.configurable\": \"advanced.settings\"\r\n  }\r\n}]]></component>\r\n  <component name=\"RecentsManager\">\r\n    <key name=\"K2MoveDeclarationsDialog.RECENT_PACKAGE_KEY\">\r\n      <recent name=\"com.bedir.yanki.ui\" />\r\n    </key>\r\n  </component>\r\n  <component name=\"RunManager\">\r\n    <configuration name=\"Yanki-App\" type=\"AndroidRunConfigurationType\" factoryName=\"Android App\" activateToolWindowBeforeRun=\"false\">\r\n      <module name=\"YANKI-Decentralized-Mesh-Network.android-app\" />\r\n      <option name=\"ANDROID_RUN_CONFIGURATION_SCHEMA_VERSION\" value=\"1\" />\r\n      <option name=\"DEPLOY\" value=\"true\" />\r\n      <option name=\"DEPLOY_APK_FROM_BUNDLE\" value=\"false\" />\r\n      <option name=\"DEPLOY_AS_INSTANT\" value=\"false\" />\r\n      <option name=\"ARTIFACT_NAME\" value=\"\" />\r\n      <option name=\"PM_INSTALL_OPTIONS\" value=\"\" />\r\n      <option name=\"ALL_USERS\" value=\"true\" />\r\n      <option name=\"ALWAYS_INSTALL_WITH_PM\" value=\"false\" />\r\n      <option name=\"ALLOW_ASSUME_VERIFIED\" value=\"false\" />\r\n      <option name=\"CLEAR_APP_STORAGE\" value=\"false\" />\r\n      <option name=\"DYNAMIC_FEATURES_DISABLED_LIST\" value=\"\" />\r\n      <option name=\"ACTIVITY_EXTRA_FLAGS\" value=\"\" />\r\n      <option name=\"MODE\" value=\"default_activity\" />\r\n      <option name=\"RESTORE_ENABLED\" value=\"false\" />\r\n      <option name=\"RESTORE_FILE\" value=\"\" />\r\n      <option name=\"RESTORE_FRESH_INSTALL_ONLY\" value=\"false\" />\r\n      <option name=\"CLEAR_LOGCAT\" value=\"false\" />\r\n      <option name=\"SHOW_LOGCAT_AUTOMATICALLY\" value=\"false\" />\r\n      <option name=\"TARGET_SELECTION_MODE\" value=\"DEVICE_AND_SNAPSHOT_COMBO_BOX\" />\r\n      <option name=\"DEBUGGER_TYPE\" value=\"Auto\" />\r\n      <Auto>\r\n        <option name=\"USE_JAVA_AWARE_DEBUGGER\" value=\"false\" />\r\n        <option name=\"SHOW_STATIC_VARS\" value=\"true\" />\r\n        <option name=\"WORKING_DIR\" value=\"\" />\r\n        <option name=\"TARGET_LOGGING_CHANNELS\" value=\"lldb process:gdb-remote packets\" />\r\n        <option name=\"SHOW_OPTIMIZED_WARNING\" value=\"true\" />\r\n        <option name=\"ATTACH_ON_WAIT_FOR_DEBUGGER\" value=\"false\" />\r\n        <option name=\"DEBUG_SANDBOX_SDK\" value=\"false\" />\r\n      </Auto>\r\n      <Hybrid>\r\n        <option name=\"USE_JAVA_AWARE_DEBUGGER\" value=\"false\" />\r\n        <option name=\"SHOW_STATIC_VARS\" value=\"true\" />\r\n        <option name=\"WORKING_DIR\" value=\"\" />\r\n        <option name=\"TARGET_LOGGING_CHANNELS\" value=\"lldb process:gdb-remote packets\" />\r\n        <option name=\"SHOW_OPTIMIZED_WARNING\" value=\"true\" />\r\n        <option name=\"ATTACH_ON_WAIT_FOR_DEBUGGER\" value=\"false\" />\r\n        <option name=\"DEBUG_SANDBOX_SDK\" value=\"false\" />\r\n      </Hybrid>\r\n      <Java>\r\n        <option name=\"ATTACH_ON_WAIT_FOR_DEBUGGER\" value=\"false\" />\r\n        <option name=\"DEBUG_SANDBOX_SDK\" value=\"false\" />\r\n      </Java>\r\n      <Native>\r\n        <option name=\"USE_JAVA_AWARE_DEBUGGER\" value=\"false\" />\r\n        <option name=\"SHOW_STATIC_VARS\" value=\"true\" />\r\n        <option name=\"WORKING_DIR\" value=\"\" />\r\n        <option name=\"TARGET_LOGGING_CHANNELS\" value=\"lldb process:gdb-remote packets\" />\r\n        <option name=\"SHOW_OPTIMIZED_WARNING\" value=\"true\" />\r\n        <option name=\"ATTACH_ON_WAIT_FOR_DEBUGGER\" value=\"false\" />\r\n        <option name=\"DEBUG_SANDBOX_SDK\" value=\"false\" />\r\n      </Native>\r\n      <Profilers>\r\n        <option name=\"ADVANCED_PROFILING_ENABLED\" value=\"false\" />\r\n        <option name=\"STARTUP_PROFILING_ENABLED\" value=\"false\" />\r\n        <option name=\"STARTUP_CPU_PROFILING_ENABLED\" value=\"false\" />\r\n        <option name=\"STARTUP_CPU_PROFILING_CONFIGURATION_NAME\" value=\"Java/Kotlin Method Sample (legacy)\" />\r\n        <option name=\"STARTUP_NATIVE_MEMORY_PROFILING_ENABLED\" value=\"false\" />\r\n        <option name=\"NATIVE_MEMORY_SAMPLE_RATE_BYTES\" value=\"2048\" />\r\n      </Profilers>\r\n      <option name=\"DEEP_LINK\" value=\"\" />\r\n      <option name=\"ACTIVITY\" value=\"\" />\r\n      <option name=\"ACTIVITY_CLASS\" value=\"\" />\r\n      <option name=\"SEARCH_ACTIVITY_IN_GLOBAL_SCOPE\" value=\"false\" />\r\n      <option name=\"SKIP_ACTIVITY_VALIDATION\" value=\"false\" />\r\n      <method v=\"2\">\r\n        <option name=\"Android.Gradle.BeforeRunTask\" enabled=\"true\" goal=\"\" />\r\n      </method>\r\n    </configuration>\r\n  </component>\r\n  <component name=\"TaskManager\">\r\n    <task active=\"true\" id=\"Default\" summary=\"Default task\">\r\n      <changelist id=\"7b4b2efb-e797-422d-b874-9627a0cb36a3\" name=\"Changes\" comment=\"\" />\r\n      <created>1774793354607</created>\r\n      <option name=\"number\" value=\"Default\" />\r\n      <option name=\"presentableId\" value=\"Default\" />\r\n      <updated>1774793354607</updated>\r\n    </task>\r\n    <task id=\"LOCAL-00001\" summary=\"güncel\">\r\n      <option name=\"closed\" value=\"true\" />\r\n      <created>1774794517659</created>\r\n      <option name=\"number\" value=\"00001\" />\r\n      <option name=\"presentableId\" value=\"LOCAL-00001\" />\r\n      <option name=\"project\" value=\"LOCAL\" />\r\n      <updated>1774794517659</updated>\r\n    </task>\r\n    <option name=\"localTasksCounter\" value=\"2\" />\r\n    <servers />\r\n  </component>\r\n  <component name=\"VcsManagerConfiguration\">\r\n    <MESSAGE value=\"güncel\" />\r\n    <option name=\"LAST_COMMIT_MESSAGE\" value=\"güncel\" />\r\n  </component>\r\n  <component name=\"XDebuggerManager\">\r\n    <breakpoint-manager>\r\n      <breakpoints>\r\n        <breakpoint enabled=\"true\" type=\"java-exception\">\r\n          <properties class=\"org.gradle.api.internal.plugins.PluginApplicationException\" package=\"org.gradle.api.internal.plugins\" />\r\n          <option name=\"timeStamp\" value=\"1\" />\r\n        </breakpoint>\r\n      </breakpoints>\r\n      <default-breakpoints>\r\n        <breakpoint enabled=\"true\" type=\"java-exception\" />\r\n      </default-breakpoints>\r\n    </breakpoint-manager>\r\n  </component>\r\n  <component name=\"play_dynamic_filters_status\">\r\n    <option name=\"appIdToCheckInfo\">\r\n      <map>\r\n        <entry key=\"com.bedir.yanki\">\r\n          <value>\r\n            <CheckInfo lastCheckTimestamp=\"1775569970547\" />\r\n          </value>\r\n        </entry>\r\n        <entry key=\"com.bedir.yanki.test\">\r\n          <value>\r\n            <CheckInfo lastCheckTimestamp=\"1775569970444\" />\r\n          </value>\r\n        </entry>\r\n      </map>\r\n    </option>\r\n  </component>\r\n</project>
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/.idea/workspace.xml b/.idea/workspace.xml
+--- a/.idea/workspace.xml	(revision b30d65defd678e8c39a1424be20f3c4020cc7eee)
++++ b/.idea/workspace.xml	(date 1776952084991)
+@@ -10,71 +10,8 @@
+   </component>
+   <component name="ChangeListManager">
+     <list default="true" id="7b4b2efb-e797-422d-b874-9627a0cb36a3" name="Changes" comment="current">
+-      <change afterPath="$PROJECT_DIR$/android-app/src/main/kotlin/com.bedir.yanki/di/StorageModule.kt" afterDir="false" />
+-      <change afterPath="$PROJECT_DIR$/android-app/src/main/kotlin/com.bedir.yanki/ui/main/components/NeighborMap.kt" afterDir="false" />
+-      <change beforePath="$PROJECT_DIR$/.gradle/8.13/checksums/checksums.lock" beforeDir="false" afterPath="$PROJECT_DIR$/.gradle/8.13/checksums/checksums.lock" afterDir="false" />
+-      <change beforePath="$PROJECT_DIR$/.gradle/8.13/checksums/md5-checksums.bin" beforeDir="false" afterPath="$PROJECT_DIR$/.gradle/8.13/checksums/md5-checksums.bin" afterDir="false" />
+-      <change beforePath="$PROJECT_DIR$/.gradle/8.13/checksums/sha1-checksums.bin" beforeDir="false" afterPath="$PROJECT_DIR$/.gradle/8.13/checksums/sha1-checksums.bin" afterDir="false" />
+-      <change beforePath="$PROJECT_DIR$/.gradle/8.13/executionHistory/executionHistory.lock" beforeDir="false" afterPath="$PROJECT_DIR$/.gradle/8.13/executionHistory/executionHistory.lock" afterDir="false" />
+-      <change beforePath="$PROJECT_DIR$/.gradle/8.13/fileHashes/fileHashes.bin" beforeDir="false" afterPath="$PROJECT_DIR$/.gradle/8.13/fileHashes/fileHashes.bin" afterDir="false" />
+-      <change beforePath="$PROJECT_DIR$/.gradle/8.13/fileHashes/fileHashes.lock" beforeDir="false" afterPath="$PROJECT_DIR$/.gradle/8.13/fileHashes/fileHashes.lock" afterDir="false" />
+-      <change beforePath="$PROJECT_DIR$/.gradle/8.13/fileHashes/resourceHashesCache.bin" beforeDir="false" afterPath="$PROJECT_DIR$/.gradle/8.13/fileHashes/resourceHashesCache.bin" afterDir="false" />
+-      <change beforePath="$PROJECT_DIR$/.gradle/8.2/checksums/checksums.lock" beforeDir="false" />
+-      <change beforePath="$PROJECT_DIR$/.gradle/8.2/checksums/md5-checksums.bin" beforeDir="false" />
+-      <change beforePath="$PROJECT_DIR$/.gradle/8.2/checksums/sha1-checksums.bin" beforeDir="false" />
+-      <change beforePath="$PROJECT_DIR$/.gradle/8.2/dependencies-accessors/dependencies-accessors.lock" beforeDir="false" />
+-      <change beforePath="$PROJECT_DIR$/.gradle/8.2/dependencies-accessors/gc.properties" beforeDir="false" />
+-      <change beforePath="$PROJECT_DIR$/.gradle/8.2/executionHistory/executionHistory.lock" beforeDir="false" />
+-      <change beforePath="$PROJECT_DIR$/.gradle/8.2/fileChanges/last-build.bin" beforeDir="false" />
+-      <change beforePath="$PROJECT_DIR$/.gradle/8.2/fileHashes/fileHashes.bin" beforeDir="false" />
+-      <change beforePath="$PROJECT_DIR$/.gradle/8.2/fileHashes/fileHashes.lock" beforeDir="false" />
+-      <change beforePath="$PROJECT_DIR$/.gradle/8.2/fileHashes/resourceHashesCache.bin" beforeDir="false" />
+-      <change beforePath="$PROJECT_DIR$/.gradle/8.2/gc.properties" beforeDir="false" />
+-      <change beforePath="$PROJECT_DIR$/.gradle/9.0.0/checksums/checksums.lock" beforeDir="false" />
+-      <change beforePath="$PROJECT_DIR$/.gradle/9.0.0/checksums/md5-checksums.bin" beforeDir="false" />
+-      <change beforePath="$PROJECT_DIR$/.gradle/9.0.0/checksums/sha1-checksums.bin" beforeDir="false" />
+-      <change beforePath="$PROJECT_DIR$/.gradle/9.0.0/fileChanges/last-build.bin" beforeDir="false" />
+-      <change beforePath="$PROJECT_DIR$/.gradle/9.0.0/fileHashes/fileHashes.lock" beforeDir="false" />
+-      <change beforePath="$PROJECT_DIR$/.gradle/9.0.0/gc.properties" beforeDir="false" />
+-      <change beforePath="$PROJECT_DIR$/.gradle/buildOutputCleanup/buildOutputCleanup.lock" beforeDir="false" afterPath="$PROJECT_DIR$/.gradle/buildOutputCleanup/buildOutputCleanup.lock" afterDir="false" />
+-      <change beforePath="$PROJECT_DIR$/.gradle/buildOutputCleanup/cache.properties" beforeDir="false" afterPath="$PROJECT_DIR$/.gradle/buildOutputCleanup/cache.properties" afterDir="false" />
+-      <change beforePath="$PROJECT_DIR$/.gradle/config.properties" beforeDir="false" afterPath="$PROJECT_DIR$/.gradle/config.properties" afterDir="false" />
+-      <change beforePath="$PROJECT_DIR$/.idea/appInsightsSettings.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/appInsightsSettings.xml" afterDir="false" />
+-      <change beforePath="$PROJECT_DIR$/.idea/compiler.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/compiler.xml" afterDir="false" />
+-      <change beforePath="$PROJECT_DIR$/.idea/deploymentTargetSelector.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/deploymentTargetSelector.xml" afterDir="false" />
+-      <change beforePath="$PROJECT_DIR$/.idea/gradle.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/gradle.xml" afterDir="false" />
+-      <change beforePath="$PROJECT_DIR$/.idea/misc.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/misc.xml" afterDir="false" />
+       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+-      <change beforePath="$PROJECT_DIR$/android-app/build.gradle.kts" beforeDir="false" afterPath="$PROJECT_DIR$/android-app/build.gradle.kts" afterDir="false" />
+-      <change beforePath="$PROJECT_DIR$/android-app/src/main/AndroidManifest.xml" beforeDir="false" afterPath="$PROJECT_DIR$/android-app/src/main/AndroidManifest.xml" afterDir="false" />
+-      <change beforePath="$PROJECT_DIR$/android-app/src/main/kotlin/com.bedir.yanki/MainActivity.kt" beforeDir="false" afterPath="$PROJECT_DIR$/android-app/src/main/kotlin/com.bedir.yanki/MainActivity.kt" afterDir="false" />
+-      <change beforePath="$PROJECT_DIR$/android-app/src/main/kotlin/com.bedir.yanki/data/local/YankiDatabase.kt" beforeDir="false" afterPath="$PROJECT_DIR$/android-app/src/main/kotlin/com.bedir.yanki/data/local/YankiDatabase.kt" afterDir="false" />
+-      <change beforePath="$PROJECT_DIR$/android-app/src/main/kotlin/com.bedir.yanki/data/local/dao/MessageDao.kt" beforeDir="false" afterPath="$PROJECT_DIR$/android-app/src/main/kotlin/com.bedir.yanki/data/local/dao/MessageDao.kt" afterDir="false" />
+-      <change beforePath="$PROJECT_DIR$/android-app/src/main/kotlin/com.bedir.yanki/data/local/dao/UserDao.kt" beforeDir="false" afterPath="$PROJECT_DIR$/android-app/src/main/kotlin/com.bedir.yanki/data/local/dao/UserDao.kt" afterDir="false" />
+-      <change beforePath="$PROJECT_DIR$/android-app/src/main/kotlin/com.bedir.yanki/data/local/entity/UserEntity.kt" beforeDir="false" afterPath="$PROJECT_DIR$/android-app/src/main/kotlin/com.bedir.yanki/data/local/entity/UserEntity.kt" afterDir="false" />
+-      <change beforePath="$PROJECT_DIR$/android-app/src/main/kotlin/com.bedir.yanki/data/mapper/ProtoMapper.kt" beforeDir="false" afterPath="$PROJECT_DIR$/android-app/src/main/kotlin/com.bedir.yanki/data/mapper/ProtoMapper.kt" afterDir="false" />
+-      <change beforePath="$PROJECT_DIR$/android-app/src/main/kotlin/com.bedir.yanki/data/remote/api/YankiNetworkClient.kt" beforeDir="false" afterPath="$PROJECT_DIR$/android-app/src/main/kotlin/com.bedir.yanki/data/remote/api/YankiNetworkClient.kt" afterDir="false" />
+-      <change beforePath="$PROJECT_DIR$/android-app/src/main/kotlin/com.bedir.yanki/data/remote/mesh/connectivity/BleMeshManager.kt" beforeDir="false" afterPath="$PROJECT_DIR$/android-app/src/main/kotlin/com.bedir.yanki/data/remote/mesh/connectivity/BleMeshManager.kt" afterDir="false" />
+-      <change beforePath="$PROJECT_DIR$/android-app/src/main/kotlin/com.bedir.yanki/data/remote/mesh/connectivity/WifiAwareManager.kt" beforeDir="false" afterPath="$PROJECT_DIR$/android-app/src/main/kotlin/com.bedir.yanki/data/remote/mesh/connectivity/WifiAwareManager.kt" afterDir="false" />
+-      <change beforePath="$PROJECT_DIR$/android-app/src/main/kotlin/com.bedir.yanki/data/remote/sync/SyncWorker.kt" beforeDir="false" afterPath="$PROJECT_DIR$/android-app/src/main/kotlin/com.bedir.yanki/data/remote/sync/SyncWorker.kt" afterDir="false" />
+-      <change beforePath="$PROJECT_DIR$/android-app/src/main/kotlin/com.bedir.yanki/di/DatabaseModule.kt" beforeDir="false" afterPath="$PROJECT_DIR$/android-app/src/main/kotlin/com.bedir.yanki/di/DatabaseModule.kt" afterDir="false" />
+-      <change beforePath="$PROJECT_DIR$/android-app/src/main/kotlin/com.bedir.yanki/di/NetworkModule.kt" beforeDir="false" afterPath="$PROJECT_DIR$/android-app/src/main/kotlin/com.bedir.yanki/di/NetworkModule.kt" afterDir="false" />
+-      <change beforePath="$PROJECT_DIR$/android-app/src/main/kotlin/com.bedir.yanki/repository/YankiRepository.kt" beforeDir="false" afterPath="$PROJECT_DIR$/android-app/src/main/kotlin/com.bedir.yanki/repository/YankiRepository.kt" afterDir="false" />
+-      <change beforePath="$PROJECT_DIR$/android-app/src/main/kotlin/com.bedir.yanki/security/SecurityManager.kt" beforeDir="false" afterPath="$PROJECT_DIR$/android-app/src/main/kotlin/com.bedir.yanki/security/SecurityManager.kt" afterDir="false" />
+-      <change beforePath="$PROJECT_DIR$/android-app/src/main/kotlin/com.bedir.yanki/services/MeshService.kt" beforeDir="false" afterPath="$PROJECT_DIR$/android-app/src/main/kotlin/com.bedir.yanki/services/MeshService.kt" afterDir="false" />
+-      <change beforePath="$PROJECT_DIR$/android-app/src/main/kotlin/com.bedir.yanki/ui/emergency/EmergencySOSScreen.kt" beforeDir="false" afterPath="$PROJECT_DIR$/android-app/src/main/kotlin/com.bedir.yanki/ui/emergency/EmergencySOSScreen.kt" afterDir="false" />
+-      <change beforePath="$PROJECT_DIR$/android-app/src/main/kotlin/com.bedir.yanki/ui/main/MainDashboard.kt" beforeDir="false" afterPath="$PROJECT_DIR$/android-app/src/main/kotlin/com.bedir.yanki/ui/main/MainDashboard.kt" afterDir="false" />
+-      <change beforePath="$PROJECT_DIR$/android-app/src/main/kotlin/com.bedir.yanki/ui/messages/ChatDetailScreen.kt" beforeDir="false" afterPath="$PROJECT_DIR$/android-app/src/main/kotlin/com.bedir.yanki/ui/messages/ChatDetailScreen.kt" afterDir="false" />
+-      <change beforePath="$PROJECT_DIR$/android-app/src/main/kotlin/com.bedir.yanki/ui/messages/MessagesListScreen.kt" beforeDir="false" afterPath="$PROJECT_DIR$/android-app/src/main/kotlin/com.bedir.yanki/ui/messages/MessagesListScreen.kt" afterDir="false" />
+-      <change beforePath="$PROJECT_DIR$/android-app/src/main/kotlin/com.bedir.yanki/ui/navigation/MainScreen.kt" beforeDir="false" afterPath="$PROJECT_DIR$/android-app/src/main/kotlin/com.bedir.yanki/ui/navigation/MainScreen.kt" afterDir="false" />
+-      <change beforePath="$PROJECT_DIR$/android-app/src/main/kotlin/com.bedir.yanki/ui/viewmodel/MeshViewModel.kt" beforeDir="false" afterPath="$PROJECT_DIR$/android-app/src/main/kotlin/com.bedir.yanki/ui/viewmodel/MeshViewModel.kt" afterDir="false" />
+-      <change beforePath="$PROJECT_DIR$/backend-server/server.js" beforeDir="false" afterPath="$PROJECT_DIR$/backend-server/server.js" afterDir="false" />
+-      <change beforePath="$PROJECT_DIR$/build.gradle.kts" beforeDir="false" afterPath="$PROJECT_DIR$/build.gradle.kts" afterDir="false" />
+-      <change beforePath="$PROJECT_DIR$/build/reports/problems/problems-report.html" beforeDir="false" afterPath="$PROJECT_DIR$/build/reports/problems/problems-report.html" afterDir="false" />
+-      <change beforePath="$PROJECT_DIR$/gradle.properties" beforeDir="false" afterPath="$PROJECT_DIR$/gradle.properties" afterDir="false" />
+-      <change beforePath="$PROJECT_DIR$/gradle/wrapper/gradle-wrapper.properties" beforeDir="false" afterPath="$PROJECT_DIR$/gradle/wrapper/gradle-wrapper.properties" afterDir="false" />
+-      <change beforePath="$PROJECT_DIR$/protocols/yanki.proto" beforeDir="false" afterPath="$PROJECT_DIR$/protocols/yanki.proto" afterDir="false" />
+-      <change beforePath="$PROJECT_DIR$/settings.gradle.kts" beforeDir="false" afterPath="$PROJECT_DIR$/settings.gradle.kts" afterDir="false" />
++      <change beforePath="$PROJECT_DIR$/web/index.html" beforeDir="false" afterPath="$PROJECT_DIR$/web/index.html" afterDir="false" />
+     </list>
+     <option name="SHOW_DIALOG" value="false" />
+     <option name="HIGHLIGHT_CONFLICTS" value="true" />
+@@ -101,12 +38,20 @@
+   <component name="Git.Settings">
+     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
+   </component>
+-  <component name="GitHubPullRequestSearchHistory">{
+-  &quot;lastFilter&quot;: {
+-    &quot;state&quot;: &quot;OPEN&quot;,
+-    &quot;assignee&quot;: &quot;Bedirhan-Erik&quot;
++  <component name="GitHubPullRequestSearchHistory"><![CDATA[{
++  "history": [
++    {
++      "state": "OPEN",
++      "assignee": "Bedirhan-Erik",
++      "author": "Bedirhan-Erik"
++    }
++  ],
++  "lastFilter": {
++    "state": "OPEN",
++    "assignee": "Bedirhan-Erik",
++    "author": "Bedirhan-Erik"
+   }
+-}</component>
++}]]></component>
+   <component name="GithubPullRequestsUISettings">{
+   &quot;selectedUrlAndAccountId&quot;: {
+     &quot;url&quot;: &quot;https://github.com/Bedirhan-Erik/YANKI-Decentralized-Mesh-Network.git&quot;,
+@@ -128,28 +73,28 @@
+     <option name="hideEmptyMiddlePackages" value="true" />
+     <option name="showLibraryContents" value="true" />
+   </component>
+-  <component name="PropertiesComponent"><![CDATA[{
+-  "keyToString": {
+-    "Android App.Yanki-App.executor": "Run",
+-    "Android App.android-app.executor": "Run",
+-    "GradleDaemonJvmCriteriaMigrationNotification.isNotificationDisabled": "true",
+-    "ModuleVcsDetector.initialDetectionPerformed": "true",
+-    "RunOnceActivity.ShowReadmeOnStart": "true",
+-    "RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager.252": "true",
+-    "RunOnceActivity.cidr.known.project.marker": "true",
+-    "RunOnceActivity.git.unshallow": "true",
+-    "RunOnceActivity.readMode.enableVisualFormatting": "true",
+-    "cf.first.check.clang-format": "false",
+-    "cidr.known.project.marker": "true",
+-    "com.google.services.firebase.aqiPopupShown": "true",
+-    "git-widget-placeholder": "master",
+-    "kotlin-language-version-configured": "true",
+-    "project.structure.last.edited": "Modules",
+-    "project.structure.proportion": "0.17",
+-    "project.structure.side.proportion": "0.2",
+-    "settings.editor.selected.configurable": "advanced.settings"
++  <component name="PropertiesComponent">{
++  &quot;keyToString&quot;: {
++    &quot;Android App.Yanki-App.executor&quot;: &quot;Run&quot;,
++    &quot;Android App.android-app.executor&quot;: &quot;Run&quot;,
++    &quot;GradleDaemonJvmCriteriaMigrationNotification.isNotificationDisabled&quot;: &quot;true&quot;,
++    &quot;ModuleVcsDetector.initialDetectionPerformed&quot;: &quot;true&quot;,
++    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
++    &quot;RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager.252&quot;: &quot;true&quot;,
++    &quot;RunOnceActivity.cidr.known.project.marker&quot;: &quot;true&quot;,
++    &quot;RunOnceActivity.git.unshallow&quot;: &quot;true&quot;,
++    &quot;RunOnceActivity.readMode.enableVisualFormatting&quot;: &quot;true&quot;,
++    &quot;cf.first.check.clang-format&quot;: &quot;false&quot;,
++    &quot;cidr.known.project.marker&quot;: &quot;true&quot;,
++    &quot;com.google.services.firebase.aqiPopupShown&quot;: &quot;true&quot;,
++    &quot;git-widget-placeholder&quot;: &quot;master&quot;,
++    &quot;kotlin-language-version-configured&quot;: &quot;true&quot;,
++    &quot;project.structure.last.edited&quot;: &quot;Modules&quot;,
++    &quot;project.structure.proportion&quot;: &quot;0.17&quot;,
++    &quot;project.structure.side.proportion&quot;: &quot;0.2&quot;,
++    &quot;settings.editor.selected.configurable&quot;: &quot;advanced.settings&quot;
+   }
+-}]]></component>
++}</component>
+   <component name="RecentsManager">
+     <key name="K2MoveDeclarationsDialog.RECENT_PACKAGE_KEY">
+       <recent name="com.bedir.yanki.ui" />
+@@ -245,6 +190,29 @@
+     </task>
+     <option name="localTasksCounter" value="2" />
+     <servers />
++  </component>
++  <component name="Vcs.Log.Tabs.Properties">
++    <option name="TAB_STATES">
++      <map>
++        <entry key="MAIN">
++          <value>
++            <State>
++              <option name="FILTERS">
++                <map>
++                  <entry key="branch">
++                    <value>
++                      <list>
++                        <option value="origin/claude/explore-repo-mE1Az" />
++                      </list>
++                    </value>
++                  </entry>
++                </map>
++              </option>
++            </State>
++          </value>
++        </entry>
++      </map>
++    </option>
+   </component>
+   <component name="VcsManagerConfiguration">
+     <MESSAGE value="güncel" />

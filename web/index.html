@@ -307,13 +307,15 @@
 
   // Placeholder kontrolü
   if (firebaseConfig.apiKey === "AIzaSyC979HjSm-h0ac-PZjxQHz--icUMJKuGVM") {
+    document.getElementById("config-warning").style.display = "none";
+  } else {
     document.getElementById("config-warning").style.display = "block";
     document.getElementById("loading-row").querySelector("td").textContent =
       "⚠️ Firebase yapılandırması eksik. Lütfen index.html dosyasını düzenleyin.";
     document.getElementById("conn-status").textContent = "⚠️ Yapılandırma eksik";
-  } else {
-    startApp(firebaseConfig);
   }
+
+  startApp(firebaseConfig);
 
   function startApp(config) {
     const app = initializeApp(config);

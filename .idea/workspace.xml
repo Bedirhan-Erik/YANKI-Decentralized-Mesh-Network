@@ -10,71 +10,7 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="7b4b2efb-e797-422d-b874-9627a0cb36a3" name="Changes" comment="current">
-      <change afterPath="$PROJECT_DIR$/android-app/src/main/kotlin/com.bedir.yanki/di/StorageModule.kt" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/android-app/src/main/kotlin/com.bedir.yanki/ui/main/components/NeighborMap.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.gradle/8.13/checksums/checksums.lock" beforeDir="false" afterPath="$PROJECT_DIR$/.gradle/8.13/checksums/checksums.lock" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.gradle/8.13/checksums/md5-checksums.bin" beforeDir="false" afterPath="$PROJECT_DIR$/.gradle/8.13/checksums/md5-checksums.bin" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.gradle/8.13/checksums/sha1-checksums.bin" beforeDir="false" afterPath="$PROJECT_DIR$/.gradle/8.13/checksums/sha1-checksums.bin" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.gradle/8.13/executionHistory/executionHistory.lock" beforeDir="false" afterPath="$PROJECT_DIR$/.gradle/8.13/executionHistory/executionHistory.lock" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.gradle/8.13/fileHashes/fileHashes.bin" beforeDir="false" afterPath="$PROJECT_DIR$/.gradle/8.13/fileHashes/fileHashes.bin" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.gradle/8.13/fileHashes/fileHashes.lock" beforeDir="false" afterPath="$PROJECT_DIR$/.gradle/8.13/fileHashes/fileHashes.lock" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.gradle/8.13/fileHashes/resourceHashesCache.bin" beforeDir="false" afterPath="$PROJECT_DIR$/.gradle/8.13/fileHashes/resourceHashesCache.bin" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.gradle/8.2/checksums/checksums.lock" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/.gradle/8.2/checksums/md5-checksums.bin" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/.gradle/8.2/checksums/sha1-checksums.bin" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/.gradle/8.2/dependencies-accessors/dependencies-accessors.lock" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/.gradle/8.2/dependencies-accessors/gc.properties" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/.gradle/8.2/executionHistory/executionHistory.lock" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/.gradle/8.2/fileChanges/last-build.bin" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/.gradle/8.2/fileHashes/fileHashes.bin" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/.gradle/8.2/fileHashes/fileHashes.lock" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/.gradle/8.2/fileHashes/resourceHashesCache.bin" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/.gradle/8.2/gc.properties" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/.gradle/9.0.0/checksums/checksums.lock" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/.gradle/9.0.0/checksums/md5-checksums.bin" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/.gradle/9.0.0/checksums/sha1-checksums.bin" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/.gradle/9.0.0/fileChanges/last-build.bin" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/.gradle/9.0.0/fileHashes/fileHashes.lock" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/.gradle/9.0.0/gc.properties" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/.gradle/buildOutputCleanup/buildOutputCleanup.lock" beforeDir="false" afterPath="$PROJECT_DIR$/.gradle/buildOutputCleanup/buildOutputCleanup.lock" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.gradle/buildOutputCleanup/cache.properties" beforeDir="false" afterPath="$PROJECT_DIR$/.gradle/buildOutputCleanup/cache.properties" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.gradle/config.properties" beforeDir="false" afterPath="$PROJECT_DIR$/.gradle/config.properties" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/appInsightsSettings.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/appInsightsSettings.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/compiler.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/compiler.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/deploymentTargetSelector.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/deploymentTargetSelector.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/gradle.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/gradle.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/misc.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/misc.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/android-app/build.gradle.kts" beforeDir="false" afterPath="$PROJECT_DIR$/android-app/build.gradle.kts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/android-app/src/main/AndroidManifest.xml" beforeDir="false" afterPath="$PROJECT_DIR$/android-app/src/main/AndroidManifest.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/android-app/src/main/kotlin/com.bedir.yanki/MainActivity.kt" beforeDir="false" afterPath="$PROJECT_DIR$/android-app/src/main/kotlin/com.bedir.yanki/MainActivity.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/android-app/src/main/kotlin/com.bedir.yanki/data/local/YankiDatabase.kt" beforeDir="false" afterPath="$PROJECT_DIR$/android-app/src/main/kotlin/com.bedir.yanki/data/local/YankiDatabase.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/android-app/src/main/kotlin/com.bedir.yanki/data/local/dao/MessageDao.kt" beforeDir="false" afterPath="$PROJECT_DIR$/android-app/src/main/kotlin/com.bedir.yanki/data/local/dao/MessageDao.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/android-app/src/main/kotlin/com.bedir.yanki/data/local/dao/UserDao.kt" beforeDir="false" afterPath="$PROJECT_DIR$/android-app/src/main/kotlin/com.bedir.yanki/data/local/dao/UserDao.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/android-app/src/main/kotlin/com.bedir.yanki/data/local/entity/UserEntity.kt" beforeDir="false" afterPath="$PROJECT_DIR$/android-app/src/main/kotlin/com.bedir.yanki/data/local/entity/UserEntity.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/android-app/src/main/kotlin/com.bedir.yanki/data/mapper/ProtoMapper.kt" beforeDir="false" afterPath="$PROJECT_DIR$/android-app/src/main/kotlin/com.bedir.yanki/data/mapper/ProtoMapper.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/android-app/src/main/kotlin/com.bedir.yanki/data/remote/api/YankiNetworkClient.kt" beforeDir="false" afterPath="$PROJECT_DIR$/android-app/src/main/kotlin/com.bedir.yanki/data/remote/api/YankiNetworkClient.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/android-app/src/main/kotlin/com.bedir.yanki/data/remote/mesh/connectivity/BleMeshManager.kt" beforeDir="false" afterPath="$PROJECT_DIR$/android-app/src/main/kotlin/com.bedir.yanki/data/remote/mesh/connectivity/BleMeshManager.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/android-app/src/main/kotlin/com.bedir.yanki/data/remote/mesh/connectivity/WifiAwareManager.kt" beforeDir="false" afterPath="$PROJECT_DIR$/android-app/src/main/kotlin/com.bedir.yanki/data/remote/mesh/connectivity/WifiAwareManager.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/android-app/src/main/kotlin/com.bedir.yanki/data/remote/sync/SyncWorker.kt" beforeDir="false" afterPath="$PROJECT_DIR$/android-app/src/main/kotlin/com.bedir.yanki/data/remote/sync/SyncWorker.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/android-app/src/main/kotlin/com.bedir.yanki/di/DatabaseModule.kt" beforeDir="false" afterPath="$PROJECT_DIR$/android-app/src/main/kotlin/com.bedir.yanki/di/DatabaseModule.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/android-app/src/main/kotlin/com.bedir.yanki/di/NetworkModule.kt" beforeDir="false" afterPath="$PROJECT_DIR$/android-app/src/main/kotlin/com.bedir.yanki/di/NetworkModule.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/android-app/src/main/kotlin/com.bedir.yanki/repository/YankiRepository.kt" beforeDir="false" afterPath="$PROJECT_DIR$/android-app/src/main/kotlin/com.bedir.yanki/repository/YankiRepository.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/android-app/src/main/kotlin/com.bedir.yanki/security/SecurityManager.kt" beforeDir="false" afterPath="$PROJECT_DIR$/android-app/src/main/kotlin/com.bedir.yanki/security/SecurityManager.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/android-app/src/main/kotlin/com.bedir.yanki/services/MeshService.kt" beforeDir="false" afterPath="$PROJECT_DIR$/android-app/src/main/kotlin/com.bedir.yanki/services/MeshService.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/android-app/src/main/kotlin/com.bedir.yanki/ui/emergency/EmergencySOSScreen.kt" beforeDir="false" afterPath="$PROJECT_DIR$/android-app/src/main/kotlin/com.bedir.yanki/ui/emergency/EmergencySOSScreen.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/android-app/src/main/kotlin/com.bedir.yanki/ui/main/MainDashboard.kt" beforeDir="false" afterPath="$PROJECT_DIR$/android-app/src/main/kotlin/com.bedir.yanki/ui/main/MainDashboard.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/android-app/src/main/kotlin/com.bedir.yanki/ui/messages/ChatDetailScreen.kt" beforeDir="false" afterPath="$PROJECT_DIR$/android-app/src/main/kotlin/com.bedir.yanki/ui/messages/ChatDetailScreen.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/android-app/src/main/kotlin/com.bedir.yanki/ui/messages/MessagesListScreen.kt" beforeDir="false" afterPath="$PROJECT_DIR$/android-app/src/main/kotlin/com.bedir.yanki/ui/messages/MessagesListScreen.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/android-app/src/main/kotlin/com.bedir.yanki/ui/navigation/MainScreen.kt" beforeDir="false" afterPath="$PROJECT_DIR$/android-app/src/main/kotlin/com.bedir.yanki/ui/navigation/MainScreen.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/android-app/src/main/kotlin/com.bedir.yanki/ui/viewmodel/MeshViewModel.kt" beforeDir="false" afterPath="$PROJECT_DIR$/android-app/src/main/kotlin/com.bedir.yanki/ui/viewmodel/MeshViewModel.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend-server/server.js" beforeDir="false" afterPath="$PROJECT_DIR$/backend-server/server.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/build.gradle.kts" beforeDir="false" afterPath="$PROJECT_DIR$/build.gradle.kts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/build/reports/problems/problems-report.html" beforeDir="false" afterPath="$PROJECT_DIR$/build/reports/problems/problems-report.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/gradle.properties" beforeDir="false" afterPath="$PROJECT_DIR$/gradle.properties" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/gradle/wrapper/gradle-wrapper.properties" beforeDir="false" afterPath="$PROJECT_DIR$/gradle/wrapper/gradle-wrapper.properties" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/protocols/yanki.proto" beforeDir="false" afterPath="$PROJECT_DIR$/protocols/yanki.proto" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/settings.gradle.kts" beforeDir="false" afterPath="$PROJECT_DIR$/settings.gradle.kts" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -99,6 +35,11 @@
     </option>
   </component>
   <component name="Git.Settings">
+    <option name="RECENT_BRANCH_BY_REPOSITORY">
+      <map>
+        <entry key="$PROJECT_DIR$" value="master" />
+      </map>
+    </option>
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
   </component>
   <component name="GitHubPullRequestSearchHistory">{
@@ -142,7 +83,7 @@
     "cf.first.check.clang-format": "false",
     "cidr.known.project.marker": "true",
     "com.google.services.firebase.aqiPopupShown": "true",
-    "git-widget-placeholder": "master",
+    "git-widget-placeholder": "claude/explore-repo-mE1Az",
     "kotlin-language-version-configured": "true",
     "project.structure.last.edited": "Modules",
     "project.structure.proportion": "0.17",
