@@ -14,7 +14,6 @@
       color: #111;
     }
 
-    /* ── ÜST HEADER ── */
     #top-bar {
       background: #002060;
       color: #fff;
@@ -60,7 +59,6 @@
       font-variant-numeric: tabular-nums;
     }
 
-    /* ── NAVİGASYON ── */
     nav {
       background: #003580;
       display: flex;
@@ -79,14 +77,12 @@
     }
     nav a:hover, nav a.active { background: #e8a000; color: #fff; }
 
-    /* ── ANA PANEL ── */
     #main {
       max-width: 1200px;
       margin: 18px auto;
       padding: 0 12px;
     }
 
-    /* ── PANEL KUTU ── */
     .panel {
       background: #fff;
       border: 1px solid #a0b0c8;
@@ -122,16 +118,9 @@
     }
     @keyframes blink { 0%,100%{opacity:1} 50%{opacity:.2} }
 
-    /* ── TABLO ── */
     .table-wrap { overflow-x: auto; }
-    table {
-      width: 100%;
-      border-collapse: collapse;
-    }
-    thead tr {
-      background: #003580;
-      color: #fff;
-    }
+    table { width: 100%; border-collapse: collapse; }
+    thead tr { background: #003580; color: #fff; }
     thead th {
       padding: 7px 10px;
       font-size: 11px;
@@ -156,7 +145,6 @@
     tbody td:last-child { border-right: none; }
     tbody td.name-col { text-align: left; font-weight: 600; white-space: normal; }
 
-    /* Durum renkleri */
     .badge {
       display: inline-block;
       padding: 2px 8px;
@@ -166,16 +154,14 @@
       letter-spacing: .3px;
       text-transform: uppercase;
     }
-    .badge-FIRE      { background: #ff4444; color: #fff; }
-    .badge-INJURED   { background: #e67e00; color: #fff; }
-    .badge-TRAPPED   { background: #8b0000; color: #fff; }
-    .badge-FLOOD     { background: #1565c0; color: #fff; }
-    .badge-SAFE      { background: #2e7d32; color: #fff; }
-    .badge-HELP      { background: #6a0dad; color: #fff; }
-    .badge-UNKNOWN   { background: #757575; color: #fff; }
-    .badge-default   { background: #004d99; color: #fff; }
+    .badge-FIRE    { background: #ff4444; color: #fff; }
+    .badge-INJURED { background: #e67e00; color: #fff; }
+    .badge-TRAPPED { background: #8b0000; color: #fff; }
+    .badge-FLOOD   { background: #1565c0; color: #fff; }
+    .badge-SAFE    { background: #2e7d32; color: #fff; }
+    .badge-HELP    { background: #6a0dad; color: #fff; }
+    .badge-default { background: #004d99; color: #fff; }
 
-    /* Yükleniyor */
     #loading-row td {
       padding: 30px;
       color: #666;
@@ -183,7 +169,6 @@
       text-align: center;
     }
 
-    /* ── DURUM ÇUBUĞU ── */
     #status-bar {
       background: #002060;
       color: #afc8e8;
@@ -192,24 +177,10 @@
       display: flex;
       justify-content: space-between;
     }
-
-    /* ── KURULUM UYARISI ── */
-    #config-warning {
-      background: #fff3cd;
-      border: 1px solid #e8a000;
-      border-radius: 4px;
-      padding: 14px 18px;
-      margin-bottom: 14px;
-      font-size: 12px;
-      line-height: 1.7;
-      display: none;
-    }
-    #config-warning strong { color: #002060; }
   </style>
 </head>
 <body>
 
-<!-- ── ÜST HEADER ── -->
 <div id="top-bar">
   <div class="logo">⚡YANKI</div>
   <div class="titles">
@@ -223,7 +194,6 @@
   </div>
 </div>
 
-<!-- ── NAVİGASYON ── -->
 <nav>
   <a href="#" class="active">Canlı Veriler</a>
   <a href="#">Acil Sinyaller</a>
@@ -231,29 +201,15 @@
   <a href="#">Hakkında</a>
 </nav>
 
-<!-- ── ANA İÇERİK ── -->
 <div id="main">
-
-  <!-- Yapılandırma uyarısı (Firebase config girilmemişse gösterilir) -->
-  <div id="config-warning">
-    ⚠️ <strong>Kurulum gerekli:</strong> Sayfanın çalışabilmesi için aşağıdaki bölümde
-    Firebase projenizin yapılandırma bilgilerini <code>index.html</code> dosyasına girmeniz gerekiyor.<br>
-    Firebase Console → Proje Ayarları → Web Uygulaması → <em>firebaseConfig</em> nesnesini kopyalayın.
-  </div>
-
-  <!-- Ana veri tablosu -->
   <div class="panel">
     <div class="panel-header">
-      <h2>
-        <span class="live-dot"></span>
-        Son Acil İletişim Kayıtları
-      </h2>
+      <h2><span class="live-dot"></span>Son Acil İletişim Kayıtları</h2>
       <span class="meta">
         Son güncelleme: <strong id="last-update">–</strong> &nbsp;|&nbsp;
         Toplam kayıt: <strong id="record-count">0</strong>
       </span>
     </div>
-
     <div class="table-wrap">
       <table>
         <thead>
@@ -267,159 +223,128 @@
           </tr>
         </thead>
         <tbody id="data-tbody">
-          <tr id="loading-row">
-            <td colspan="6">Veriler yükleniyor…</td>
-          </tr>
+          <tr id="loading-row"><td colspan="6">Veriler yükleniyor…</td></tr>
         </tbody>
       </table>
     </div>
   </div>
-
 </div>
 
-<!-- ── DURUM ÇUBUĞU ── -->
 <div id="status-bar">
   <span>YANKI Mesh Network © 2025 – Afet anında kesintisiz iletişim</span>
   <span id="conn-status">🔴 Bağlantı bekleniyor…</span>
 </div>
 
-
-<!-- ════════════════════════════════════════════════
-     FİREBASE YAPILANDIRMASI
-     Firebase Console → Proje Ayarları → Uygulamalar → Web
-     bölümünden aldığınız firebaseConfig nesnesini buraya yapıştırın.
-     ════════════════════════════════════════════════ -->
 <script type="module">
-  import { initializeApp }   from "https://www.gstatic.com/firebasejs/11.7.1/firebase-app.js";
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/11.7.1/firebase-app.js";
   import { getFirestore, collection, query, orderBy, limit, onSnapshot, getDocs }
     from "https://www.gstatic.com/firebasejs/11.7.1/firebase-firestore.js";
 
-  // ▼▼▼ SADECE 3 EKSİK DEĞER İÇİN FIREBASE CONSOLE'A GİRİN ▼▼▼
-  // Firebase Console → Proje Ayarları → Genel → Uygulamalarınız → Web uygulaması
   const firebaseConfig = {
-    apiKey:            "BURAYA_WEB_API_KEY",        // ← tek eksik: Console'dan alın
+    apiKey:            "AIzaSyC979HjSm-h0ac-PZjxQHz--icUMJKuGVM",
     authDomain:        "yankiapp-472b97c4.firebaseapp.com",
     projectId:         "yankiapp-472b97c4",
-    storageBucket:     "yankiapp-472b97c4.appspot.com",
-    messagingSenderId: "BURAYA_SENDER_ID",          // ← Proje Ayarları → Proje Numarası
-    appId:             "BURAYA_APP_ID"              // ← Web uygulaması App ID
+    storageBucket:     "yankiapp-472b97c4.firebasestorage.app",
+    messagingSenderId: "832552007678",
+    appId:             "1:832552007678:web:319ee97b58adfd2ecbb2af"
   };
-  // ▲▲▲ YAPILANDIRMA SONU ▲▲▲
 
-  // Placeholder kontrolü
-  if (firebaseConfig.apiKey === "BURAYA_WEB_API_KEY") {
-    document.getElementById("config-warning").style.display = "block";
-    document.getElementById("loading-row").querySelector("td").textContent =
-      "⚠️ Firebase yapılandırması eksik. Lütfen index.html dosyasını düzenleyin.";
-    document.getElementById("conn-status").textContent = "⚠️ Yapılandırma eksik";
-  } else {
-    startApp(firebaseConfig);
+  const app = initializeApp(firebaseConfig);
+  const db  = getFirestore(app);
+
+  let usersMap = {};
+
+  function escHtml(str) {
+    return String(str)
+      .replace(/&/g, "&amp;").replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;").replace(/"/g, "&quot;");
   }
 
-  function startApp(config) {
-    const app = initializeApp(config);
-    const db  = getFirestore(app);
-
-    let usersMap = {};
-
-    // Tüm kullanıcıları bir kez çek (isim arama için)
-    async function loadUsers() {
-      try {
-        const snap = await getDocs(collection(db, "users"));
-        snap.forEach(doc => { usersMap[doc.id] = doc.data(); });
-      } catch (e) {
-        console.warn("Kullanıcı listesi alınamadı:", e.message);
-      }
-    }
-
-    function escHtml(str) {
-      return String(str)
-        .replace(/&/g, "&amp;").replace(/</g, "&lt;")
-        .replace(/>/g, "&gt;").replace(/"/g, "&quot;");
-    }
-
-    function durumuBilgisi(tip) {
-      const map = {
-        FIRE:    { tr: "YANGIN",    cls: "badge-FIRE"    },
-        INJURED: { tr: "YARALANDI", cls: "badge-INJURED" },
-        TRAPPED: { tr: "MAHSUR",   cls: "badge-TRAPPED" },
-        FLOOD:   { tr: "SEL",       cls: "badge-FLOOD"   },
-        SAFE:    { tr: "GÜVENDE",   cls: "badge-SAFE"    },
-        HELP:    { tr: "YARDIM",    cls: "badge-HELP"    },
-      };
-      const key = (tip || "").toUpperCase();
-      return map[key] || { tr: tip || "BİLİNMİYOR", cls: "badge-default" };
-    }
-
-    function formatDate(ts) {
-      if (!ts) return { tarih: "–", saat: "–" };
-      const d = ts.toDate ? ts.toDate() : new Date(ts);
-      const tarih = d.toLocaleDateString("tr-TR", { day:"2-digit", month:"2-digit", year:"numeric" });
-      const saat  = d.toLocaleTimeString("tr-TR", { hour:"2-digit", minute:"2-digit", second:"2-digit" });
-      return { tarih, saat };
-    }
-
-    function renderTable(docs) {
-      const tbody = document.getElementById("data-tbody");
-      tbody.innerHTML = "";
-
-      if (docs.length === 0) {
-        tbody.innerHTML = `<tr id="loading-row"><td colspan="6">Henüz kayıt yok.</td></tr>`;
-        return;
-      }
-
-      docs.forEach(docSnap => {
-        const d = docSnap.data();
-        const user = usersMap[d.user_id] || {};
-        const isimSoyisim = user.user_name || d.user_id || "–";
-        const { tarih, saat } = formatDate(d.created_at);
-        const lat = d.location?.latitude  != null ? d.location.latitude.toFixed(4)  : "–";
-        const lon = d.location?.longitude != null ? d.location.longitude.toFixed(4) : "–";
-        const durum = durumuBilgisi(d.emergency_type);
-
-        const tr = document.createElement("tr");
-        tr.innerHTML = `
-          <td>${escHtml(tarih)}</td>
-          <td>${escHtml(saat)}</td>
-          <td>${escHtml(lat)}</td>
-          <td>${escHtml(lon)}</td>
-          <td class="name-col">${escHtml(isimSoyisim)}</td>
-          <td><span class="badge ${escHtml(durum.cls)}">${escHtml(durum.tr)}</span></td>
-        `;
-        tbody.appendChild(tr);
-      });
-
-      document.getElementById("record-count").textContent = docs.length;
-      document.getElementById("last-update").textContent =
-        new Date().toLocaleTimeString("tr-TR");
-    }
-
-    async function init() {
-      await loadUsers();
-
-      const q = query(
-        collection(db, "emergency_signals"),
-        orderBy("created_at", "desc"),
-        limit(100)
-      );
-
-      onSnapshot(q,
-        (snapshot) => {
-          renderTable(snapshot.docs);
-          document.getElementById("conn-status").textContent = "🟢 Canlı bağlı";
-        },
-        (err) => {
-          console.error("Firestore hatası:", err);
-          document.getElementById("conn-status").textContent = "🔴 Bağlantı hatası: " + err.message;
-        }
-      );
-    }
-
-    init();
+  function durumuBilgisi(tip) {
+    const map = {
+      FIRE:    { tr: "YANGIN",    cls: "badge-FIRE"    },
+      INJURED: { tr: "YARALANDI", cls: "badge-INJURED" },
+      TRAPPED: { tr: "MAHSUR",   cls: "badge-TRAPPED" },
+      FLOOD:   { tr: "SEL",       cls: "badge-FLOOD"   },
+      SAFE:    { tr: "GÜVENDE",   cls: "badge-SAFE"    },
+      HELP:    { tr: "YARDIM",    cls: "badge-HELP"    },
+    };
+    const key = (tip || "").toUpperCase();
+    return map[key] || { tr: tip || "BİLİNMİYOR", cls: "badge-default" };
   }
+
+  function formatDate(ts) {
+    if (!ts) return { tarih: "–", saat: "–" };
+    const d = ts.toDate ? ts.toDate() : new Date(ts);
+    return {
+      tarih: d.toLocaleDateString("tr-TR", { day:"2-digit", month:"2-digit", year:"numeric" }),
+      saat:  d.toLocaleTimeString("tr-TR", { hour:"2-digit", minute:"2-digit", second:"2-digit" })
+    };
+  }
+
+  function renderTable(docs) {
+    const tbody = document.getElementById("data-tbody");
+    tbody.innerHTML = "";
+
+    if (docs.length === 0) {
+      tbody.innerHTML = `<tr id="loading-row"><td colspan="6">Henüz kayıt yok.</td></tr>`;
+      return;
+    }
+
+    docs.forEach(docSnap => {
+      const d = docSnap.data();
+      const user = usersMap[d.user_id] || {};
+      const isimSoyisim = user.user_name || d.user_id || "–";
+      const { tarih, saat } = formatDate(d.created_at);
+      const lat   = d.location?.latitude  != null ? d.location.latitude.toFixed(4)  : "–";
+      const lon   = d.location?.longitude != null ? d.location.longitude.toFixed(4) : "–";
+      const durum = durumuBilgisi(d.emergency_type);
+
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
+        <td>${escHtml(tarih)}</td>
+        <td>${escHtml(saat)}</td>
+        <td>${escHtml(lat)}</td>
+        <td>${escHtml(lon)}</td>
+        <td class="name-col">${escHtml(isimSoyisim)}</td>
+        <td><span class="badge ${escHtml(durum.cls)}">${escHtml(durum.tr)}</span></td>
+      `;
+      tbody.appendChild(tr);
+    });
+
+    document.getElementById("record-count").textContent = docs.length;
+    document.getElementById("last-update").textContent = new Date().toLocaleTimeString("tr-TR");
+  }
+
+  async function init() {
+    try {
+      const snap = await getDocs(collection(db, "users"));
+      snap.forEach(doc => { usersMap[doc.id] = doc.data(); });
+    } catch (e) {
+      console.warn("Kullanıcı listesi alınamadı:", e.message);
+    }
+
+    const q = query(
+      collection(db, "emergency_signals"),
+      orderBy("created_at", "desc"),
+      limit(100)
+    );
+
+    onSnapshot(q,
+      (snapshot) => {
+        renderTable(snapshot.docs);
+        document.getElementById("conn-status").textContent = "🟢 Canlı bağlı";
+      },
+      (err) => {
+        console.error("Firestore hatası:", err);
+        document.getElementById("conn-status").textContent = "🔴 Bağlantı hatası: " + err.message;
+      }
+    );
+  }
+
+  init();
 </script>
 
-<!-- Saat / Tarih güncelleme -->
 <script>
   function updateClock() {
     const now = new Date();
