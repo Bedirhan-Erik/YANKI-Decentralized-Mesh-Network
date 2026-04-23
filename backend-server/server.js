@@ -1,6 +1,8 @@
 const grpc = require('@grpc/grpc-js');
 const protoLoader = require('@grpc/proto-loader');
 const path = require('path');
+const http = require('http');
+const fs   = require('fs');
 const { db } = require('./firebase-config');
 const admin = require('firebase-admin');
 
@@ -143,7 +145,27 @@ async function GetNewData(call, callback) {
     }
 }
 
-// --- Sunucu Başlatma ---
+// --- Web Paneli (HTTP Sunucu) ---
+function startWebServer() {
+    const INDEX_HTML = path.join(__dirname, '..', 'web', 'index.html');
+    const WEB_PORT   = process.env.WEB_PORT || 3000;
+
+    http.createServer((req, res) => {
+        fs.readFile(INDEX_HTML, (err, data) => {
+            if (err) {
+                res.writeHead(500, { 'Content-Type': 'text/plain; charset=utf-8' });
+                res.end('Web paneli yüklenemedi: ' + err.message);
+                return;
+            }
+            res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
+            res.end(data);
+        });
+    }).listen(WEB_PORT, () => {
+        console.log(`🌐 Web Paneli  : http://localhost:${WEB_PORT}`);
+    });
+}
+
+// --- gRPC + Web Sunucu Başlatma ---
 function main() {
     const server = new grpc.Server();
     server.addService(yankiProto.YankiSyncService.service, {
@@ -160,8 +182,10 @@ function main() {
             return;
         }
         console.log(`🚀 YANKI Kontrol Merkezi Aktif!`);
-        console.log(`📡 Adres: ${HOST_PORT}`);
+        console.log(`📡 gRPC Adresi : ${HOST_PORT}`);
     });
+
+    startWebServer();
 }
 
 main();
