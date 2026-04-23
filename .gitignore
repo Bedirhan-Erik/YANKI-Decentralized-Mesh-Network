@@ -14,3 +14,5 @@ captures/
 .cxx
 local.properties
 /android-app/build
+node_modules/
+package-lock.json
