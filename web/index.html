@@ -294,19 +294,20 @@
   import { getFirestore, collection, query, orderBy, limit, onSnapshot, getDocs }
     from "https://www.gstatic.com/firebasejs/11.7.1/firebase-firestore.js";
 
-  // ▼▼▼ BU BÖLÜMü KENDİ FİREBASE BİLGİLERİNİZLE DEĞİŞTİRİN ▼▼▼
+  // ▼▼▼ SADECE 3 EKSİK DEĞER İÇİN FIREBASE CONSOLE'A GİRİN ▼▼▼
+  // Firebase Console → Proje Ayarları → Genel → Uygulamalarınız → Web uygulaması
   const firebaseConfig = {
-    apiKey:            "BURAYA_API_KEY",
-    authDomain:        "BURAYA_PROJECT_ID.firebaseapp.com",
-    projectId:         "BURAYA_PROJECT_ID",
-    storageBucket:     "BURAYA_PROJECT_ID.appspot.com",
-    messagingSenderId: "BURAYA_SENDER_ID",
-    appId:             "BURAYA_APP_ID"
+    apiKey:            "BURAYA_WEB_API_KEY",        // ← tek eksik: Console'dan alın
+    authDomain:        "yankiapp-472b97c4.firebaseapp.com",
+    projectId:         "yankiapp-472b97c4",
+    storageBucket:     "yankiapp-472b97c4.appspot.com",
+    messagingSenderId: "BURAYA_SENDER_ID",          // ← Proje Ayarları → Proje Numarası
+    appId:             "BURAYA_APP_ID"              // ← Web uygulaması App ID
   };
   // ▲▲▲ YAPILANDIRMA SONU ▲▲▲
 
   // Placeholder kontrolü
-  if (firebaseConfig.apiKey === "BURAYA_API_KEY") {
+  if (firebaseConfig.apiKey === "BURAYA_WEB_API_KEY") {
     document.getElementById("config-warning").style.display = "block";
     document.getElementById("loading-row").querySelector("td").textContent =
       "⚠️ Firebase yapılandırması eksik. Lütfen index.html dosyasını düzenleyin.";
