@@ -332,6 +332,12 @@
       }
     }
 
+    function escHtml(str) {
+      return String(str)
+        .replace(/&/g, "&amp;").replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+    }
+
     function durumuBilgisi(tip) {
       const map = {
         FIRE:    { tr: "YANGIN",    cls: "badge-FIRE"    },
@@ -373,12 +379,12 @@
 
         const tr = document.createElement("tr");
         tr.innerHTML = `
-          <td>${tarih}</td>
-          <td>${saat}</td>
-          <td>${lat}</td>
-          <td>${lon}</td>
-          <td class="name-col">${isimSoyisim}</td>
-          <td><span class="badge ${durum.cls}">${durum.tr}</span></td>
+          <td>${escHtml(tarih)}</td>
+          <td>${escHtml(saat)}</td>
+          <td>${escHtml(lat)}</td>
+          <td>${escHtml(lon)}</td>
+          <td class="name-col">${escHtml(isimSoyisim)}</td>
+          <td><span class="badge ${escHtml(durum.cls)}">${escHtml(durum.tr)}</span></td>
         `;
         tbody.appendChild(tr);
       });
