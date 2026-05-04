@@ -7,122 +7,180 @@
   <!-- Leaflet CSS -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <style>
+    @import url('https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;600;700;900&family=JetBrains+Mono:wght@500&display=swap');
+
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
+    :root {
+      --navy-900: #0a1628;
+      --navy-800: #0f2240;
+      --navy-700: #152d50;
+      --navy-600: #1b3a64;
+      --accent-gold: #c9952b;
+      --accent-gold-light: #dbb45c;
+      --accent-gold-dim: rgba(201,149,43,.12);
+      --text-primary: #1a1f2e;
+      --text-secondary: #5a6577;
+      --text-muted: #8a95a8;
+      --surface: #f4f6fa;
+      --surface-card: #ffffff;
+      --border: #d8dde8;
+      --border-light: #e8ecf2;
+    }
+
     body {
-      font-family: Arial, Helvetica, sans-serif;
-      font-size: 13px;
-      background: #d6dce6;
-      color: #111;
+      font-family: 'Source Sans 3', -apple-system, BlinkMacSystemFont, sans-serif;
+      font-size: 13.5px;
+      background: var(--surface);
+      color: var(--text-primary);
+      -webkit-font-smoothing: antialiased;
     }
 
     /* ── ÜST HEADER ── */
     #top-bar {
-      background: #002060;
+      background: linear-gradient(135deg, var(--navy-900) 0%, var(--navy-800) 100%);
       color: #fff;
       display: flex;
       align-items: center;
-      gap: 16px;
-      padding: 8px 20px;
-      border-bottom: 3px solid #e8a000;
+      gap: 20px;
+      padding: 12px 28px;
+      border-bottom: 2px solid var(--accent-gold);
+      box-shadow: 0 2px 12px rgba(10,22,40,.25);
     }
     #top-bar .logo {
-      font-size: 36px;
+      font-family: 'Source Sans 3', sans-serif;
+      font-size: 32px;
       font-weight: 900;
-      letter-spacing: -1px;
-      color: #e8c000;
+      letter-spacing: 1px;
+      color: var(--accent-gold);
       line-height: 1;
+      position: relative;
+      padding-left: 6px;
+    }
+    #top-bar .logo::before {
+      content: '';
+      position: absolute;
+      left: 0;
+      top: 2px;
+      bottom: 2px;
+      width: 3px;
+      background: var(--accent-gold);
+      border-radius: 2px;
     }
     #top-bar .titles { flex: 1; }
     #top-bar .titles h1 {
-      font-size: 16px;
+      font-size: 15px;
       font-weight: 700;
       text-transform: uppercase;
-      letter-spacing: .5px;
+      letter-spacing: .8px;
       line-height: 1.3;
+      color: #e8edf5;
     }
     #top-bar .titles p {
       font-size: 11px;
-      color: #afc8e8;
-      margin-top: 2px;
+      color: var(--text-muted);
+      margin-top: 3px;
       text-transform: uppercase;
-      letter-spacing: .8px;
+      letter-spacing: 1.2px;
+      font-weight: 600;
     }
     #top-bar .clock {
       text-align: right;
       font-size: 11px;
-      color: #afc8e8;
+      color: var(--text-muted);
       line-height: 1.8;
     }
     #top-bar .clock span {
       display: block;
+      font-family: 'JetBrains Mono', monospace;
       font-size: 22px;
-      font-weight: 700;
+      font-weight: 500;
       color: #fff;
       font-variant-numeric: tabular-nums;
+      letter-spacing: 1px;
     }
 
     /* ── NAVİGASYON ── */
     nav {
-      background: #003580;
+      background: var(--navy-700);
       display: flex;
-      gap: 1px;
+      gap: 0;
+      border-bottom: 1px solid rgba(255,255,255,.06);
     }
     nav a {
       display: block;
-      padding: 7px 16px;
-      color: #c8d8f0;
+      padding: 9px 20px;
+      color: rgba(255,255,255,.55);
       text-decoration: none;
-      font-size: 12px;
+      font-size: 11.5px;
       font-weight: 700;
       text-transform: uppercase;
-      letter-spacing: .4px;
-      transition: background .15s;
+      letter-spacing: .6px;
+      transition: all .2s ease;
+      border-bottom: 2px solid transparent;
+      position: relative;
+      cursor: pointer;
     }
-    nav a:hover, nav a.active { background: #e8a000; color: #fff; }
+    nav a:hover {
+      color: #fff;
+      background: rgba(255,255,255,.05);
+      border-bottom-color: var(--accent-gold-light);
+    }
+    nav a.active {
+      color: #fff;
+      background: rgba(201,149,43,.1);
+      border-bottom-color: var(--accent-gold);
+    }
 
     /* ── ANA PANEL ── */
     #main {
-      max-width: 1200px;
-      margin: 18px auto;
-      padding: 0 12px;
+      max-width: 1240px;
+      margin: 24px auto;
+      padding: 0 16px;
+      min-height: calc(100vh - 160px);
     }
 
     /* ── PANEL KUTU ── */
     .panel {
-      background: #fff;
-      border: 1px solid #a0b0c8;
-      border-radius: 2px;
-      margin-bottom: 18px;
+      background: var(--surface-card);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      margin-bottom: 20px;
+      overflow: hidden;
+      box-shadow: 0 1px 4px rgba(10,22,40,.06);
     }
     .panel-header {
-      background: #002060;
+      background: linear-gradient(135deg, var(--navy-900), var(--navy-800));
       color: #fff;
-      padding: 7px 12px;
+      padding: 10px 16px;
       display: flex;
       align-items: center;
       justify-content: space-between;
       gap: 12px;
     }
     .panel-header h2 {
-      font-size: 13px;
+      font-size: 12.5px;
       font-weight: 700;
       text-transform: uppercase;
-      letter-spacing: .5px;
+      letter-spacing: .7px;
     }
     .panel-header .meta {
       font-size: 11px;
-      color: #afc8e8;
+      color: var(--text-muted);
+    }
+    .panel-header .meta strong {
+      color: var(--accent-gold-light);
     }
     .live-dot {
       display: inline-block;
-      width: 8px; height: 8px;
-      background: #ff4444;
+      width: 7px; height: 7px;
+      background: #ef4444;
       border-radius: 50%;
-      margin-right: 6px;
-      animation: blink 1s infinite;
+      margin-right: 7px;
+      box-shadow: 0 0 6px rgba(239,68,68,.5);
+      animation: blink 1.2s ease-in-out infinite;
     }
-    @keyframes blink { 0%,100%{opacity:1} 50%{opacity:.2} }
+    @keyframes blink { 0%,100%{opacity:1} 50%{opacity:.15} }
 
     /* ── TABLO ── */
     .table-wrap { overflow-x: auto; }
@@ -131,102 +189,145 @@
       border-collapse: collapse;
     }
     thead tr {
-      background: #003580;
+      background: var(--navy-700);
       color: #fff;
     }
     thead th {
-      padding: 7px 10px;
-      font-size: 11px;
+      padding: 9px 12px;
+      font-size: 10.5px;
       font-weight: 700;
       text-transform: uppercase;
-      letter-spacing: .5px;
+      letter-spacing: .7px;
       white-space: nowrap;
-      border-right: 1px solid #1a4090;
+      border-right: 1px solid rgba(255,255,255,.08);
       text-align: center;
     }
     thead th:last-child { border-right: none; }
-    tbody tr:nth-child(even) { background: #edf2fb; }
+    tbody tr:nth-child(even) { background: #f8f9fc; }
     tbody tr:nth-child(odd)  { background: #fff; }
-    tbody tr:hover { background: #fff3cc; }
+    tbody tr { transition: background .15s ease; }
+    tbody tr:hover { background: var(--accent-gold-dim); }
     tbody td {
-      padding: 6px 10px;
-      border-bottom: 1px solid #dde4ef;
-      border-right: 1px solid #dde4ef;
+      padding: 8px 12px;
+      border-bottom: 1px solid var(--border-light);
+      border-right: 1px solid var(--border-light);
       text-align: center;
       white-space: nowrap;
+      font-size: 13px;
     }
     tbody td:last-child { border-right: none; }
-    tbody td.name-col { text-align: left; font-weight: 600; white-space: normal; }
+    tbody td.name-col {
+      text-align: left;
+      font-weight: 600;
+      white-space: normal;
+      color: var(--navy-800);
+    }
 
     /* Durum renkleri */
     .badge {
       display: inline-block;
-      padding: 2px 8px;
-      border-radius: 10px;
-      font-size: 11px;
+      padding: 3px 10px;
+      border-radius: 4px;
+      font-size: 10.5px;
       font-weight: 700;
-      letter-spacing: .3px;
+      letter-spacing: .4px;
       text-transform: uppercase;
     }
-    .badge-FIRE      { background: #ff4444; color: #fff; }
-    .badge-INJURED   { background: #e67e00; color: #fff; }
-    .badge-TRAPPED   { background: #8b0000; color: #fff; }
-    .badge-FLOOD     { background: #1565c0; color: #fff; }
-    .badge-SAFE      { background: #2e7d32; color: #fff; }
-    .badge-HELP      { background: #6a0dad; color: #fff; }
-    .badge-UNKNOWN   { background: #757575; color: #fff; }
-    .badge-default   { background: #004d99; color: #fff; }
+    .badge-FIRE      { background: #fde8e8; color: #b91c1c; border: 1px solid #fca5a5; }
+    .badge-INJURED   { background: #fff3e0; color: #c2410c; border: 1px solid #fdba74; }
+    .badge-TRAPPED   { background: #fce4ec; color: #7f1d1d; border: 1px solid #f9a8d4; }
+    .badge-FLOOD     { background: #e3f2fd; color: #0d47a1; border: 1px solid #90caf9; }
+    .badge-SAFE      { background: #e8f5e9; color: #1b5e20; border: 1px solid #a5d6a7; }
+    .badge-HELP      { background: #f3e5f5; color: #6a1b9a; border: 1px solid #ce93d8; }
+    .badge-UNKNOWN   { background: #f5f5f5; color: #616161; border: 1px solid #e0e0e0; }
+    .badge-default   { background: #e8edf5; color: var(--navy-800); border: 1px solid var(--border); }
 
     /* Yükleniyor */
     #loading-row td {
-      padding: 30px;
-      color: #666;
+      padding: 36px;
+      color: var(--text-secondary);
       font-style: italic;
       text-align: center;
     }
 
     /* ── DURUM ÇUBUĞU ── */
     #status-bar {
-      background: #002060;
-      color: #afc8e8;
+      background: var(--navy-900);
+      color: var(--text-muted);
       font-size: 11px;
-      padding: 5px 20px;
+      padding: 7px 28px;
       display: flex;
       justify-content: space-between;
+      letter-spacing: .3px;
     }
 
     /* ── HARİTA ── */
     #map {
-      height: 400px;
+      height: 420px;
       width: 100%;
-      border: 1px solid #a0b0c8;
-      border-radius: 2px;
-      margin-bottom: 18px;
+      border-top: 1px solid var(--border-light);
       z-index: 1;
     }
 
     /* ── KURULUM UYARISI ── */
     #config-warning {
-      background: #fff3cd;
-      border: 1px solid #e8a000;
+      background: #fffbeb;
+      border: 1px solid var(--accent-gold);
+      border-left: 4px solid var(--accent-gold);
       border-radius: 4px;
       padding: 14px 18px;
-      margin-bottom: 14px;
-      font-size: 12px;
+      margin-bottom: 16px;
+      font-size: 12.5px;
       line-height: 1.7;
       display: none;
     }
-    #config-warning strong { color: #002060; }
+    #config-warning strong { color: var(--navy-800); }
+
+    /* Leaflet popup override */
+    .leaflet-popup-content-wrapper {
+      border-radius: 6px;
+      font-family: 'Source Sans 3', sans-serif;
+      font-size: 12.5px;
+    }
+    .leaflet-popup-content strong {
+      color: var(--navy-800);
+    }
+
+    /* Hakkında İçerik Stili */
+    .about-content {
+      padding: 28px;
+      color: var(--navy-800);
+      line-height: 1.6;
+      font-size: 14.5px;
+    }
+    .about-content h3 {
+      color: var(--accent-gold);
+      margin-top: 24px;
+      margin-bottom: 12px;
+      font-size: 16px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .about-content p {
+      margin-bottom: 16px;
+    }
+    .about-content ul {
+      margin-left: 20px;
+      margin-bottom: 20px;
+    }
+    .about-content li {
+      margin-bottom: 8px;
+    }
   </style>
 </head>
 <body>
 
 <!-- ── ÜST HEADER ── -->
 <div id="top-bar">
-  <div class="logo">⚡YANKI</div>
+  <div class="logo">YANKI</div>
   <div class="titles">
     <h1>Merkeziyetsiz Afet İletişim Ağı – Canlı İzleme Merkezi</h1>
-    <p>Boğaziçi Üniversitesi · Kandilli Rasathanesi ve Deprem Araştırma Enstitüsü tarzı tasarım</p>
+    <p>Ulusal Acil Durum Koordinasyon Sistemi · Gerçek Zamanlı İzleme Platformu</p>
   </div>
   <div class="clock">
     <span id="clock-time">--:--:--</span>
@@ -237,10 +338,8 @@
 
 <!-- ── NAVİGASYON ── -->
 <nav>
-  <a href="#" class="active">Canlı Veriler</a>
-  <a href="#">Acil Sinyaller</a>
-  <a href="#">Harita</a>
-  <a href="#">Hakkında</a>
+  <a class="nav-link active" data-target="dashboard">Canlı Veriler</a>
+  <a class="nav-link" data-target="about">Hakkında</a>
 </nav>
 
 <!-- ── ANA İÇERİK ── -->
@@ -253,45 +352,71 @@
     Firebase Console → Proje Ayarları → Web Uygulaması → <em>firebaseConfig</em> nesnesini kopyalayın.
   </div>
 
-  <!-- Harita Paneli -->
-  <div class="panel">
-    <div class="panel-header">
-      <h2>📍 Acil Durum Haritası (Canlı)</h2>
-    </div>
-    <div id="map"></div>
-  </div>
-
-  <!-- Ana veri tablosu -->
-  <div class="panel">
-    <div class="panel-header">
-      <h2>
-        <span class="live-dot"></span>
-        Son Acil İletişim Kayıtları
-      </h2>
-      <span class="meta">
-        Son güncelleme: <strong id="last-update">–</strong> &nbsp;|&nbsp;
-        Toplam kayıt: <strong id="record-count">0</strong>
-      </span>
+  <!-- ── CANLI VERİLER GÖRÜNÜMÜ ── -->
+  <div id="view-dashboard">
+    <!-- Harita Paneli -->
+    <div class="panel">
+      <div class="panel-header">
+        <h2>📍 Acil Durum Haritası (Canlı)</h2>
+      </div>
+      <div id="map"></div>
     </div>
 
-    <div class="table-wrap">
-      <table>
-        <thead>
+    <!-- Ana veri tablosu -->
+    <div class="panel">
+      <div class="panel-header">
+        <h2>
+          <span class="live-dot"></span>
+          Son Acil İletişim Kayıtları
+        </h2>
+        <span class="meta">
+          Son güncelleme: <strong id="last-update">–</strong> &nbsp;|&nbsp;
+          Toplam kayıt: <strong id="record-count">0</strong>
+        </span>
+      </div>
+
+      <div class="table-wrap">
+        <table>
+          <thead>
           <tr>
             <th>Tarih</th>
             <th>Saat</th>
-            <th>Enlem (K)</th>
-            <th>Boylam (D)</th>
+            <th>Konum (E, B)</th>
             <th style="text-align:left; min-width:160px;">İsim Soyisim</th>
-            <th>Durum</th>
+            <th>Durum / Sinyal Tipi</th>
+            <th>Pil / Hop</th>
           </tr>
-        </thead>
-        <tbody id="data-tbody">
+          </thead>
+          <tbody id="data-tbody">
           <tr id="loading-row">
             <td colspan="6">Veriler yükleniyor…</td>
           </tr>
-        </tbody>
-      </table>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── HAKKINDA GÖRÜNÜMÜ ── -->
+  <div id="view-about" style="display: none;">
+    <div class="panel">
+      <div class="panel-header">
+        <h2>ℹ️ YANKI Projesi Hakkında</h2>
+      </div>
+      <div class="about-content">
+        <p><strong>YANKI</strong>, deprem, sel, yangın gibi doğal afetlerde veya acil durumlarda hücresel ağların (baz istasyonları) ve internet altyapısının tamamen çöktüğü senaryolar için geliştirilmiş, hayat kurtarmayı amaçlayan <strong>merkeziyetsiz bir iletişim ağı (Mesh Network)</strong> projesidir.</p>
+
+        <h3>Nasıl Çalışır?</h3>
+        <ul>
+          <li><strong>İnternetsiz İletişim:</strong> Kullanıcıların cihazları, internet veya operatör şebekesi olmadan Bluetooth ve Wi-Fi Direct teknolojilerini kullanarak birbirine doğrudan bağlanır.</li>
+          <li><strong>Ağ Zıplaması (Mesh Hops):</strong> Bir enkaz altından gönderilen SOS sinyali, yakındaki diğer YANKI kullanıcılarının telefonlarından sekerek (hop) ilerler.</li>
+          <li><strong>Bulut Senkronizasyonu:</strong> Cihazdan cihaza aktarılan bu sinyal zinciri, güvenli bir bölgede internet bağlantısı olan herhangi bir cihaza ulaştığı an buluta (Firebase) aktarılır.</li>
+          <li><strong>Canlı İzleme:</strong> Buluta ulaşan sinyaller, koordinat, pil seviyesi, acil durum tipi ve ağda kaç kere zıpladığı bilgisiyle birlikte eşzamanlı olarak bu panele (Dashboard) düşer.</li>
+        </ul>
+
+        <h3>Sistemin Amacı</h3>
+        <p>Arama kurtarma ekiplerinin, afetzedelerin tam konumunu ve hayati durumlarını (mahsur kalma, tıbbi yardım, yangın vb.) saniyeler içinde görebilmesini sağlamaktır. Sistem aynı zamanda telefon pil seviyesini göstererek müdahale önceliğinin belirlenmesine yardımcı olur.</p>
+      </div>
     </div>
   </div>
 
@@ -306,8 +431,6 @@
 
 <!-- ════════════════════════════════════════════════
      FİREBASE YAPILANDIRMASI
-     Firebase Console → Proje Ayarları → Uygulamalar → Web
-     bölümünden aldığınız firebaseConfig nesnesini buraya yapıştırın.
      ════════════════════════════════════════════════ -->
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script type="module">
@@ -315,7 +438,6 @@
   import { getFirestore, collection, query, orderBy, limit, onSnapshot, getDocs }
     from "https://www.gstatic.com/firebasejs/11.7.1/firebase-firestore.js";
 
-  // ▼▼▼ BU BÖLÜMü KENDİ FİREBASE BİLGİLERİNİZLE DEĞİŞTİRİN ▼▼▼
   const firebaseConfig = {
     apiKey: "AIzaSyC979HjSm-h0ac-PZjxQHz--icUMJKuGVM",
     authDomain: "yankiapp-472b97c4.firebaseapp.com",
@@ -324,9 +446,7 @@
     messagingSenderId: "832552007678",
     appId: "1:832552007678:web:319ee97b58adfd2ecbb2af"
   };
-  // ▲▲▲ YAPILANDIRMA SONU ▲▲▲
 
-  // Placeholder kontrolü
   if (firebaseConfig.apiKey === "AIzaSyC979HjSm-h0ac-PZjxQHz--icUMJKuGVM") {
     document.getElementById("config-warning").style.display = "block";
     document.getElementById("loading-row").querySelector("td").textContent =
@@ -349,7 +469,7 @@
     let markers = L.layerGroup().addTo(map);
     let usersMap = {};
 
-    // Tüm kullanıcıları bir kez çek (isim arama için)
+    // Kullanıcıları çek
     async function loadUsers() {
       try {
         const snap = await getDocs(collection(db, "users"));
@@ -359,19 +479,23 @@
       }
     }
 
+    // Durum Analizi
     function durumuBilgisi(tip) {
-      const map = {
-        FIRE:    { tr: "YANGIN",    cls: "badge-FIRE"    },
-        INJURED: { tr: "YARALANDI", cls: "badge-INJURED" },
-        TRAPPED: { tr: "MAHSUR",   cls: "badge-TRAPPED" },
-        FLOOD:   { tr: "SEL",       cls: "badge-FLOOD"   },
-        SAFE:    { tr: "GÜVENDE",   cls: "badge-SAFE"    },
-        HELP:    { tr: "YARDIM",    cls: "badge-HELP"    },
-      };
-      const key = (tip || "").toUpperCase();
-      return map[key] || { tr: tip || "BİLİNMİYOR", cls: "badge-default" };
+      if (!tip) return { tr: "BİLİNMİYOR", cls: "badge-default" };
+
+      const lowerTip = tip.toLowerCase();
+      let cls = "badge-default";
+
+      if (lowerTip.includes("yangın")) cls = "badge-FIRE";
+      else if (lowerTip.includes("yaralı") || lowerTip.includes("tıbbi")) cls = "badge-INJURED";
+      else if (lowerTip.includes("enkaz") || lowerTip.includes("mahsur")) cls = "badge-TRAPPED";
+      else if (lowerTip.includes("sel")) cls = "badge-FLOOD";
+      else if (lowerTip.includes("güvende")) cls = "badge-SAFE";
+
+      return { tr: tip, cls: cls };
     }
 
+    // Tarih Formatlama
     function formatDate(ts) {
       if (!ts) return { tarih: "–", saat: "–" };
       const d = ts.toDate ? ts.toDate() : new Date(ts);
@@ -380,6 +504,7 @@
       return { tarih, saat };
     }
 
+    // Tabloyu ve Haritayı Doldur
     function renderTable(docs) {
       const tbody = document.getElementById("data-tbody");
       tbody.innerHTML = "";
@@ -393,49 +518,51 @@
       docs.forEach(docSnap => {
         const d = docSnap.data();
         const user = usersMap[d.user_id] || {};
-        const isimSoyisim = user.user_name || d.user_id || "–";
+        const isimSoyisim = user.user_name || d.user_id || "Bilinmeyen Kullanıcı";
         const { tarih, saat } = formatDate(d.created_at);
         const lat = d.location?.latitude  != null ? d.location.latitude  : null;
         const lon = d.location?.longitude != null ? d.location.longitude : null;
+        const pil = d.battery_level != null ? `%${d.battery_level}` : "–";
+        const hop = d.mesh_hops != null ? d.mesh_hops : "0";
         const durum = durumuBilgisi(d.emergency_type);
 
-        // Tablo Satırı
         const tr = document.createElement("tr");
         tr.innerHTML = `
           <td>${tarih}</td>
           <td>${saat}</td>
-          <td>${lat ? lat.toFixed(4) : "–"}</td>
-          <td>${lon ? lon.toFixed(4) : "–"}</td>
+          <td>${lat ? lat.toFixed(4) : "–"}, ${lon ? lon.toFixed(4) : "–"}</td>
           <td class="name-col">${isimSoyisim}</td>
           <td><span class="badge ${durum.cls}">${durum.tr}</span></td>
+          <td>🔋 ${pil} | 📡 ${hop} hop</td>
         `;
         tbody.appendChild(tr);
 
-        // Harita İşaretçisi
         if (lat && lon) {
           const marker = L.marker([lat, lon]).addTo(markers);
           marker.bindPopup(`
-            <strong>${isimSoyisim}</strong><br>
-            Durum: ${durum.tr}<br>
-            Zaman: ${tarih} ${saat}
+            <div style="font-size: 13px;">
+              <strong>👤 ${isimSoyisim}</strong><br>
+              <span style="color: #b91c1c; font-weight: bold;">🚨 ${durum.tr}</span><br>
+              <hr style="margin: 5px 0; border: 0; border-top: 1px solid #eee;">
+              🔋 Pil: <strong>${pil}</strong><br>
+              📡 Ağ Zıplaması: <strong>${hop}</strong><br>
+              🕒 ${tarih} - ${saat}
+            </div>
           `);
         }
       });
 
-      // Eğer veri varsa haritayı son konuma odakla (opsiyonel)
       if (docs.length > 0 && docs[0].data().location) {
           const loc = docs[0].data().location;
-          // map.panTo([loc.latitude, loc.longitude]);
+          map.setView([loc.latitude, loc.longitude], 10);
       }
 
       document.getElementById("record-count").textContent = docs.length;
-      document.getElementById("last-update").textContent =
-        new Date().toLocaleTimeString("tr-TR");
+      document.getElementById("last-update").textContent = new Date().toLocaleTimeString("tr-TR");
     }
 
     async function init() {
       await loadUsers();
-
       const q = query(
         collection(db, "emergency_signals"),
         orderBy("created_at", "desc"),
@@ -455,6 +582,31 @@
     }
 
     init();
+
+    // ── SEKME KONTROLÜ (Canlı Veriler / Hakkında) ──
+    const navLinks = document.querySelectorAll('.nav-link');
+    const viewDashboard = document.getElementById('view-dashboard');
+    const viewAbout = document.getElementById('view-about');
+
+    navLinks.forEach(link => {
+      link.addEventListener('click', (e) => {
+        navLinks.forEach(nav => nav.classList.remove('active'));
+        e.target.classList.add('active');
+
+        const target = e.target.getAttribute('data-target');
+
+        if (target === 'dashboard') {
+          viewDashboard.style.display = 'block';
+          viewAbout.style.display = 'none';
+
+          // Harita tekrar görünür olduğunda Leaflet'in çizimi düzeltmesi için
+          setTimeout(() => { map.invalidateSize(); }, 100);
+        } else if (target === 'about') {
+          viewDashboard.style.display = 'none';
+          viewAbout.style.display = 'block';
+        }
+      });
+    });
   }
 </script>
 

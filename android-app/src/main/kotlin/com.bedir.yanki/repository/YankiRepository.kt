@@ -72,15 +72,17 @@ class YankiRepository @Inject constructor(
     suspend fun sendMessage(content: String, receiverId: String) {
         try {
             ensureLocalUserExists()
-            val myPrivateKey = getMySecretKey()
             val messageBytes = content.toByteArray()
 
             // Mesajı imzala
             var signature: ByteArray? = null
             try {
-                signature = securityManager.signData(messageBytes, myPrivateKey)
+                val privateKey = getMySecretKey()
+                if (privateKey.isNotEmpty()) {
+                    signature = securityManager.signData(messageBytes, privateKey)
+                }
             } catch (t: Throwable) {
-                Log.e("YANKI_REPO", "Mesaj imzalanamadı (Kritik): ${t.message}")
+                Log.e("YANKI_REPO", "Mesaj imzalama hatası (Kritik değil ama imzasız gidecek): ${t.message}")
             }
 
             val messageEntity = MessageEntity(
@@ -88,7 +90,7 @@ class YankiRepository @Inject constructor(
                 sender_id = currentUserId,
                 receiver_id = receiverId,
                 content_blob = messageBytes,
-                signature = signature,
+                signature = signature ?: byteArrayOf(), // NULL yerine boş dizi göndererek çökme önlenir
                 timestamp = System.currentTimeMillis(),
                 status = STATUS_RELAYED,
                 is_synced = false,
@@ -103,20 +105,25 @@ class YankiRepository @Inject constructor(
             val currentTime = System.currentTimeMillis()
             
             neighbors.forEach { neighbor ->
-                // Son 5 dakika içinde görüldüyse (Threshold artırıldı) ve MAC adresi varsa
-                if (currentTime - neighbor.last_seen < 300000 && !neighbor.last_mac.isNullOrBlank()) {
-                    // Eğer direkt alıcı ise veya genel gossip için
-                    if (neighbor.user_id == receiverId || neighbor.user_id != currentUserId) {
-                        val payload = ProtoMapper.packageAll(emptyList(), listOf(messageEntity))
-                        
-                        // BLE limitlerine göre (512 byte) gönderim yap
-                        if (payload.size < 500) {
-                            Log.d("YANKI_MESH", "Mesaj komşuya (${neighbor.user_id}) BLE üzerinden denenecek.")
-                            bleMeshManager.sendPayloadToNeighbor(neighbor.last_mac, payload)
-                        } else {
-                            Log.d("YANKI_MESH", "Mesaj BLE için çok büyük (${payload.size} byte), Wi-Fi Aware beklenecek.")
+                try {
+                    // Son 5 dakika içinde görüldüyse ve MAC adresi varsa
+                    if (currentTime - neighbor.last_seen < 300000 && !neighbor.last_mac.isNullOrBlank()) {
+                        // Eğer direkt alıcı ise veya genel gossip için
+                        if (neighbor.user_id == receiverId || neighbor.user_id != currentUserId) {
+                            val payload = ProtoMapper.packageAll(emptyList(), listOf(messageEntity))
+                            
+                            if (payload.isNotEmpty()) {
+                                if (payload.size < 500) {
+                                    Log.d("YANKI_MESH", "Mesaj komşuya (${neighbor.user_id}) BLE üzerinden denenecek.")
+                                    bleMeshManager.sendPayloadToNeighbor(neighbor.last_mac, payload)
+                                } else {
+                                    Log.d("YANKI_MESH", "Mesaj BLE için çok büyük (${payload.size} byte), Wi-Fi Aware beklenecek.")
+                                }
+                            }
                         }
                     }
+                } catch (e: Exception) {
+                    Log.e("YANKI_MESH", "Neighbor gönderim hatası (${neighbor.user_id}): ${e.message}")
                 }
             }
             
