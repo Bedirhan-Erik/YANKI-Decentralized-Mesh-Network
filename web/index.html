@@ -4,6 +4,8 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>YANKI – Acil İletişim Ağı İzleme Merkezi</title>
+  <!-- Leaflet CSS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -193,6 +195,16 @@
       justify-content: space-between;
     }
 
+    /* ── HARİTA ── */
+    #map {
+      height: 400px;
+      width: 100%;
+      border: 1px solid #a0b0c8;
+      border-radius: 2px;
+      margin-bottom: 18px;
+      z-index: 1;
+    }
+
     /* ── KURULUM UYARISI ── */
     #config-warning {
       background: #fff3cd;
@@ -239,6 +251,14 @@
     ⚠️ <strong>Kurulum gerekli:</strong> Sayfanın çalışabilmesi için aşağıdaki bölümde
     Firebase projenizin yapılandırma bilgilerini <code>index.html</code> dosyasına girmeniz gerekiyor.<br>
     Firebase Console → Proje Ayarları → Web Uygulaması → <em>firebaseConfig</em> nesnesini kopyalayın.
+  </div>
+
+  <!-- Harita Paneli -->
+  <div class="panel">
+    <div class="panel-header">
+      <h2>📍 Acil Durum Haritası (Canlı)</h2>
+    </div>
+    <div id="map"></div>
   </div>
 
   <!-- Ana veri tablosu -->
@@ -289,6 +309,7 @@
      Firebase Console → Proje Ayarları → Uygulamalar → Web
      bölümünden aldığınız firebaseConfig nesnesini buraya yapıştırın.
      ════════════════════════════════════════════════ -->
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script type="module">
   import { initializeApp }   from "https://www.gstatic.com/firebasejs/11.7.1/firebase-app.js";
   import { getFirestore, collection, query, orderBy, limit, onSnapshot, getDocs }
@@ -306,7 +327,7 @@
   // ▲▲▲ YAPILANDIRMA SONU ▲▲▲
 
   // Placeholder kontrolü
-  if (firebaseConfig.apiKey === "BURAYA_API_KEY") {
+  if (firebaseConfig.apiKey === "AIzaSyC979HjSm-h0ac-PZjxQHz--icUMJKuGVM") {
     document.getElementById("config-warning").style.display = "block";
     document.getElementById("loading-row").querySelector("td").textContent =
       "⚠️ Firebase yapılandırması eksik. Lütfen index.html dosyasını düzenleyin.";
@@ -319,6 +340,13 @@
     const app = initializeApp(config);
     const db  = getFirestore(app);
 
+    // Harita Başlatma
+    const map = L.map('map').setView([39.9334, 32.8597], 6); // Türkiye merkezli
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '© OpenStreetMap contributors'
+    }).addTo(map);
+
+    let markers = L.layerGroup().addTo(map);
     let usersMap = {};
 
     // Tüm kullanıcıları bir kez çek (isim arama için)
@@ -355,6 +383,7 @@
     function renderTable(docs) {
       const tbody = document.getElementById("data-tbody");
       tbody.innerHTML = "";
+      markers.clearLayers();
 
       if (docs.length === 0) {
         tbody.innerHTML = `<tr id="loading-row"><td colspan="6">Henüz kayıt yok.</td></tr>`;
@@ -366,21 +395,38 @@
         const user = usersMap[d.user_id] || {};
         const isimSoyisim = user.user_name || d.user_id || "–";
         const { tarih, saat } = formatDate(d.created_at);
-        const lat = d.location?.latitude  != null ? d.location.latitude.toFixed(4)  : "–";
-        const lon = d.location?.longitude != null ? d.location.longitude.toFixed(4) : "–";
+        const lat = d.location?.latitude  != null ? d.location.latitude  : null;
+        const lon = d.location?.longitude != null ? d.location.longitude : null;
         const durum = durumuBilgisi(d.emergency_type);
 
+        // Tablo Satırı
         const tr = document.createElement("tr");
         tr.innerHTML = `
           <td>${tarih}</td>
           <td>${saat}</td>
-          <td>${lat}</td>
-          <td>${lon}</td>
+          <td>${lat ? lat.toFixed(4) : "–"}</td>
+          <td>${lon ? lon.toFixed(4) : "–"}</td>
           <td class="name-col">${isimSoyisim}</td>
           <td><span class="badge ${durum.cls}">${durum.tr}</span></td>
         `;
         tbody.appendChild(tr);
+
+        // Harita İşaretçisi
+        if (lat && lon) {
+          const marker = L.marker([lat, lon]).addTo(markers);
+          marker.bindPopup(`
+            <strong>${isimSoyisim}</strong><br>
+            Durum: ${durum.tr}<br>
+            Zaman: ${tarih} ${saat}
+          `);
+        }
       });
+
+      // Eğer veri varsa haritayı son konuma odakla (opsiyonel)
+      if (docs.length > 0 && docs[0].data().location) {
+          const loc = docs[0].data().location;
+          // map.panTo([loc.latitude, loc.longitude]);
+      }
 
       document.getElementById("record-count").textContent = docs.length;
       document.getElementById("last-update").textContent =

@@ -39,31 +39,18 @@ client.SendEmergencySignal({
     else console.log("✅ SendEmergencySignal Başarılı:", response.message);
 });
 
-// --- 3. TEST: Mesaj Senkronizasyonu (Stream Testi) ---
-// Stream başlattığımız için çağrıyı bir değişkene atıyoruz
-const call = client.SyncMessages((error, response) => {
+// --- 3. TEST: Mesaj Senkronizasyonu (Unary Testi) ---
+const testMessage = {
+    msg_id: "msg-001",
+    sender_id: "test-user-999",
+    receiver_id: "BROADCAST",
+    timestamp: Date.now().toString(), // Proto'da int64 ama JS'de string olarak geçmek gerekebiliyor bazen veya BigInt
+    status: 1,
+    is_synced: false,
+    content_blob: Buffer.from("Test mesajı içeriği")
+};
+
+client.SyncMessages(testMessage, (error, response) => {
     if (error) console.error("❌ SyncMessages Hatası:", error);
     else console.log("✅ SyncMessages Başarılı:", response.message);
 });
-
-// Ağa arka arkaya iki mesaj yolluyoruz
-call.write({
-    msg_id: "msg-001",
-    sender_id: "test-user-999",
-    receiver_id: "BROADCAST", // Herkese açık mesaj
-    timestamp: Date.now(),
-    status: 1,
-    is_synced: false
-});
-
-call.write({
-    msg_id: "msg-002",
-    sender_id: "test-user-999",
-    receiver_id: "hedef-cihaz-123", // Özel mesaj
-    timestamp: Date.now(),
-    status: 1,
-    is_synced: false
-});
-
-// Veri gönderimini bitiriyoruz
-call.end();
