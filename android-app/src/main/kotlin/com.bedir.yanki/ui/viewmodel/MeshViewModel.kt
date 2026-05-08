@@ -22,6 +22,7 @@ import kotlinx.coroutines.Dispatchers
 import com.bedir.yanki.ui.radar.NeighborPoint
 import java.util.UUID
 import javax.inject.Inject
+import kotlin.math.*
 
 @HiltViewModel
 class MeshViewModel @Inject constructor(
@@ -115,15 +116,20 @@ class MeshViewModel @Inject constructor(
                 try {
                     val calculatedRange = "${users.size * 25}m"
 
-                    // UserEntity listesini RadarView'in beklediği NeighborPoint listesine çevir
+                    // UserEntity listesini RadarView'in beklediği NeighborPoint listesine çevir (Canlı RSSI/Mesafe)
                     val neighborPoints = users.map { user ->
-                        // Her kullanıcı için sabit ama benzersiz bir konum üret (ID'ye göre)
-                        val random = java.util.Random(user.user_id.hashCode().toLong())
-                        val xRatio = (random.nextFloat() * 1.6f) - 0.8f // -0.8 ile 0.8 arası
-                        val yRatio = (random.nextFloat() * 1.6f) - 0.8f
+                        // RSSI verisini mesafeye (yarıçapa) dönüştür: -40 (yakın) -> -100 (uzak)
+                        val rssi = user.last_rssi.toFloat()
+                        val normalizedRadius = ((rssi + 30) / -70f).coerceIn(0.15f, 0.9f)
                         
-                        // Son 30 saniye içinde görüldüyse online sayalım
-                        val isOnline = System.currentTimeMillis() - user.last_seen < 30000
+                        // User ID'ye göre sabit ama her kullanıcı için farklı bir açı (Radyan)
+                        val angle = (abs(user.user_id.hashCode()) % 360) * (PI / 180.0)
+                        
+                        val xRatio = (normalizedRadius * cos(angle)).toFloat()
+                        val yRatio = (normalizedRadius * sin(angle)).toFloat()
+                        
+                        // Son 60 saniye içinde görüldüyse online sayalım
+                        val isOnline = System.currentTimeMillis() - user.last_seen < 60000
                         
                         NeighborPoint(xRatio, yRatio, isOnline)
                     }

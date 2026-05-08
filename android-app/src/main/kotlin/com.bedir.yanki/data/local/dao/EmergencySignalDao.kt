@@ -19,4 +19,7 @@ interface EmergencySignalDao {
 
     @Query("SELECT * FROM emergency_signals WHERE is_synced = 0 ORDER BY timestamp DESC LIMIT 10")
     suspend fun getPendingSignals(): List<EmergencySignalEntity>
+
+    @Query("UPDATE emergency_signals SET is_synced = 1 WHERE signal_id = :signalId")
+    suspend fun markAsSynced(signalId: String)
 }

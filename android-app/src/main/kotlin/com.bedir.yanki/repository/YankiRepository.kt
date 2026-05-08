@@ -12,6 +12,8 @@ import com.bedir.yanki.data.remote.mesh.connectivity.WifiAwareManager
 import com.bedir.yanki.data.mapper.ProtoMapper
 import androidx.core.content.edit
 import com.bedir.yanki.security.SecurityManager
+import dagger.hilt.android.qualifiers.ApplicationContext
+import android.content.Context
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -27,7 +29,8 @@ class YankiRepository @Inject constructor(
     private val bleMeshManager: BleMeshManager,
     private val wifiAwareManager: WifiAwareManager,
     private val securityManager: SecurityManager,
-    val sharedPreferences: android.content.SharedPreferences
+    val sharedPreferences: android.content.SharedPreferences,
+    @ApplicationContext private val context: Context
 ) {
     companion object {
         const val STATUS_RECEIVED = 0
@@ -59,11 +62,7 @@ class YankiRepository @Inject constructor(
     suspend fun getUnsyncedMessages() = messageDao.getUnsyncedMessages()
     suspend fun markMessageAsSynced(msgId: String) = messageDao.markAsSynced(msgId)
     suspend fun markSignalAsSynced(signalId: String) {
-        // EmergencySignalEntity'de is_synced alanını güncelle
-        val signal = emergencySignalDao.getAllSignals().find { it.signal_id == signalId }
-        signal?.let {
-            emergencySignalDao.insertSignal(it.copy(is_synced = true))
-        }
+        emergencySignalDao.markAsSynced(signalId)
     }
     fun getChatHistory(userId: String) = messageDao.getChatHistory(userId)
     fun getAllMessagesFlow() = messageDao.getAllMessages()
@@ -82,7 +81,7 @@ class YankiRepository @Inject constructor(
                     signature = securityManager.signData(messageBytes, privateKey)
                 }
             } catch (t: Throwable) {
-                Log.e("YANKI_REPO", "Mesaj imzalama hatası (Kritik değil ama imzasız gidecek): ${t.message}")
+                Log.e("YANKI_REPO", "Mesaj imzalama hatası: ${t.message}")
             }
 
             val messageEntity = MessageEntity(
@@ -90,7 +89,7 @@ class YankiRepository @Inject constructor(
                 sender_id = currentUserId,
                 receiver_id = receiverId,
                 content_blob = messageBytes,
-                signature = signature ?: byteArrayOf(), // NULL yerine boş dizi göndererek çökme önlenir
+                signature = signature ?: byteArrayOf(),
                 timestamp = System.currentTimeMillis(),
                 status = STATUS_RELAYED,
                 is_synced = false,
@@ -100,7 +99,10 @@ class YankiRepository @Inject constructor(
             saveMessage(messageEntity)
             Log.d("YANKI_REPO", "Mesaj yerel veritabanına kaydedildi: ${messageEntity.msg_id}")
             
-            // Komşu listesini kontrol et ve hemen gönderim yapmayı dene
+            // --- YENİ: İnternet Varsa Hemen Buluta Gönder ---
+            triggerImmediateCloudSync()
+
+            // Komşu listesini kontrol et ve mesh üzerinden gönderim yapmayı dene
             val neighbors = userDao.getAllUsers()
             val currentTime = System.currentTimeMillis()
             
@@ -169,7 +171,7 @@ class YankiRepository @Inject constructor(
 
             // Mesaj imzasını doğrula
             val sender = userDao.getUserById(incomingMessage.sender_id)
-            if (sender != null && incomingMessage.signature != null) {
+            if (sender != null && sender.public_key.isNotEmpty() && incomingMessage.signature != null) {
                 try {
                     val isValid = securityManager.verifySignature(
                         data = incomingMessage.content_blob,
@@ -178,7 +180,6 @@ class YankiRepository @Inject constructor(
                     )
                     if (!isValid) {
                         Log.w("YANKI_SECURITY", "Geçersiz mesaj imzası tespit edildi! MsgID: ${incomingMessage.msg_id}")
-                        return 
                     }
                 } catch (t: Throwable) {
                     Log.e("YANKI_SECURITY", "İmza doğrulama sırasında fatal hata: ${t.message}")
@@ -206,6 +207,35 @@ class YankiRepository @Inject constructor(
     // ==========================================
     suspend fun saveEmergencySignal(signal: EmergencySignalEntity) = emergencySignalDao.insertSignal(signal)
     suspend fun getAllSignals() = emergencySignalDao.getAllSignals()
+
+    suspend fun sendEmergencySignal(type: String, lat: Double, lon: Double, battery: Int) {
+        ensureLocalUserExists()
+        val signal = EmergencySignalEntity(
+            signal_id = UUID.randomUUID().toString(),
+            user_id = currentUserId,
+            latitude = lat,
+            longitude = lon,
+            emergency_type = type,
+            battery_level = battery,
+            timestamp = System.currentTimeMillis(),
+            is_synced = false,
+            hop_count = 0
+        )
+        saveEmergencySignal(signal)
+        Log.d("YANKI_REPO", "SOS Sinyali yerel veritabanına kaydedildi. Bulut tetikleniyor...")
+        
+        // Önemli: Direkt buluta çıkmayı dene
+        triggerImmediateCloudSync()
+        
+        // Komşulara mesh üzerinden yay
+        val neighbors = userDao.getAllUsers()
+        neighbors.forEach { neighbor ->
+            if (!neighbor.last_mac.isNullOrBlank()) {
+                val payload = ProtoMapper.packageSOSOnly(listOf(signal))
+                bleMeshManager.sendPayloadToNeighbor(neighbor.last_mac, payload)
+            }
+        }
+    }
 
     suspend fun handleEmergencySignal(signal: EmergencySignalEntity) {
         if (emergencySignalDao.isSignalExists(signal.signal_id)) return
@@ -275,16 +305,27 @@ class YankiRepository @Inject constructor(
     }
 
     private fun processIncomingPayload(data: ByteArray) {
+        Log.d("YANKI_MESH", "AĞDAN VERİ GELDİ! Boyut: ${data.size} byte")
         val parsed = ProtoMapper.parseIncomingPayload(data)
-        parsed?.let { payload ->
-            CoroutineScope(Dispatchers.IO).launch {
-                payload.signals.forEach { signal -> handleEmergencySignal(signal) }
-                payload.messages.forEach { message -> handleIncomingMeshMessage(message) }
+        if (parsed != null) {
+            Log.d("YANKI_MESH", "Paket çözüldü: ${parsed.messages.size} mesaj var.")
+
+            val parsed = ProtoMapper.parseIncomingPayload(data)
+            parsed?.let { payload ->
+                CoroutineScope(Dispatchers.IO).launch {
+                    payload.signals.forEach { signal -> handleEmergencySignal(signal) }
+                    payload.messages.forEach { message -> handleIncomingMeshMessage(message) }
+
+                    // Mesh'ten yeni veri geldi, eğer internet varsa hemen buluta gönder
+                    if (payload.signals.isNotEmpty() || payload.messages.isNotEmpty()) {
+                        triggerImmediateCloudSync()
+                    }
+                }
             }
         }
     }
 
-    suspend fun handleNeighborFound(neighborId: String, neighborMacAddress: String) {
+    suspend fun handleNeighborFound(neighborId: String, neighborMacAddress: String, rssi: Int) {
         // Kendi kullanıcımızın veritabanında olduğundan emin olalım (Çökme koruması)
         ensureLocalUserExists()
 
@@ -292,7 +333,7 @@ class YankiRepository @Inject constructor(
         val existingUser = userDao.getUserById(neighborId)
 
         if (existingUser != null) {
-            userDao.updateLastSeen(userId = neighborId, timestamp = currentTime, macAddress = neighborMacAddress)
+            userDao.updateLastSeen(userId = neighborId, timestamp = currentTime, macAddress = neighborMacAddress, rssi = rssi)
         } else {
             val newUser = UserEntity(
                 user_id = neighborId,
@@ -300,11 +341,26 @@ class YankiRepository @Inject constructor(
                 public_key = byteArrayOf(),
                 last_seen = currentTime,
                 last_mac = neighborMacAddress,
+                last_rssi = rssi,
                 is_trusted = false
             )
             userDao.insertOrUpdateUser(newUser)
         }
         triggerGossipProtocol(neighborId, neighborMacAddress)
+    }
+
+    private fun triggerImmediateCloudSync() {
+        try {
+            // Ağ kısıtlamasını kaldırıyoruz: Yerel Wi-Fi'da (internet olmasa bile) denesin
+            val syncRequest = androidx.work.OneTimeWorkRequestBuilder<com.bedir.yanki.data.remote.sync.SyncWorker>()
+                .build() 
+            
+            androidx.work.WorkManager.getInstance(context)
+                .enqueueUniqueWork("immediate_sync", androidx.work.ExistingWorkPolicy.REPLACE, syncRequest)
+            Log.d("YANKI_SYNC", "Anlık bulut senkronizasyonu tetiklendi (Kısıtlamasız).")
+        } catch (e: Exception) {
+            Log.e("YANKI_SYNC", "WorkManager tetikleme hatası: ${e.message}")
+        }
     }
 
     private suspend fun triggerGossipProtocol(neighborId: String, neighborMacAddress: String) {
@@ -326,12 +382,12 @@ class YankiRepository @Inject constructor(
             if (pendingMessages.isNotEmpty()) {
                 val messagePayload = ProtoMapper.packageAll(emptyList(), pendingMessages)
                 
-                // Eğer paket BLE sınırları içindeyse (MTU 512) ve MAC biliniyorsa BLE kullan
-                if (messagePayload.size < 500 && neighborMacAddress.isNotBlank()) {
-                    Log.d("YANKI_MESH", "Mesaj paketi BLE üzerinden gönderiliyor: $neighborMacAddress")
+                // Eğer paket BLE sınırları içindeyse (Parçalama desteğiyle 2000 byte'a kadar makul) ve MAC biliniyorsa BLE kullan
+                if (messagePayload.size < 2000 && neighborMacAddress.isNotBlank()) {
+                    Log.d("YANKI_MESH", "Mesaj paketi BLE üzerinden (parçalı) gönderiliyor: $neighborMacAddress")
                     bleMeshManager.sendPayloadToNeighbor(neighborMacAddress, messagePayload)
                 } else {
-                    // Paket büyükse veya çok fazla mesaj varsa Wi-Fi Aware şart
+                    // Paket çok büyükse Wi-Fi Aware şart
                     needsWifiAware = true
                 }
             }

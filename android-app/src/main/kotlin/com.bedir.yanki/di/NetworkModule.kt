@@ -16,7 +16,7 @@ object NetworkModule {
     @Provides
     @Singleton
     fun provideGrpcChannel(): ManagedChannel {
-        // Gerçek cihaz bağlantısı için PC IP adresi kullanılıyor: 172.20.10.4
+        // GÜNCEL SUNUCU IP ADRESİ: 172.20.10.4
         return ManagedChannelBuilder.forAddress("172.20.10.4", 50051)
             .usePlaintext()
             .build()

@@ -28,7 +28,7 @@ client.RegisterUser({
 
 // --- 2. TEST: SOS Acil Durum Sinyali ---
 client.SendEmergencySignal({
-    signal_id: 1,
+    signal_id: "test-sos-id-001",
     user_id: "test-user-999",
     latitude: 38.4237,  // İzmir koordinatları
     longitude: 27.1428,

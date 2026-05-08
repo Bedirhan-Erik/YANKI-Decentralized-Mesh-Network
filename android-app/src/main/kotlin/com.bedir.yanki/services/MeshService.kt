@@ -52,10 +52,10 @@ class MeshService : Service() {
         repository.startListeningForMeshPayloads()
 
         // 1. BLE Taramasını Başlat
-        bleMeshManager.startScanning { neighborId, address ->
+        bleMeshManager.startScanning { neighborId, address, rssi ->
             serviceScope.launch {
                 // Komşuyu bulduğunda Repository'deki trafik polisini tetikle
-                repository.handleNeighborFound(neighborId, address)
+                repository.handleNeighborFound(neighborId, address, rssi)
             }
         }
 

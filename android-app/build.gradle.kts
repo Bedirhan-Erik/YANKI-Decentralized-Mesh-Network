@@ -49,9 +49,9 @@ android {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
         }
         jniLibs {
-            // Manifest'teki extractNativeLibs=true ile uyumlu olması için 
-            // kütüphaneleri sıkıştırmadan paketliyoruz.
-            useLegacyPackaging = false
+            // JNA'nın libjnidispatch.so kütüphanesini bulabilmesi için
+            // kütüphaneleri APK içine geleneksel yöntemle paketliyoruz.
+            useLegacyPackaging = true
         }
     }
 }
@@ -121,7 +121,9 @@ dependencies {
 
     implementation("androidx.work:work-runtime-ktx:2.11.2")
     implementation("androidx.security:security-crypto:1.1.0-alpha06")
-    implementation("com.goterl:lazysodium-android:5.2.0")
-    implementation("net.java.dev.jna:jna:5.18.1")
+    implementation("com.goterl:lazysodium-android:5.2.0") {
+        exclude(group = "net.java.dev.jna", module = "jna")
+    }
+    implementation("net.java.dev.jna:jna:5.17.0@aar")
 
 }

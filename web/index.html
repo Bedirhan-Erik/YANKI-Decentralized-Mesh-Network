@@ -338,7 +338,8 @@
 
 <!-- ── NAVİGASYON ── -->
 <nav>
-  <a class="nav-link active" data-target="dashboard">Canlı Veriler</a>
+  <a class="nav-link active" data-target="dashboard">Acil Durum Haritası</a>
+  <a class="nav-link" data-target="messages">Mesaj Trafiği</a>
   <a class="nav-link" data-target="about">Hakkında</a>
 </nav>
 
@@ -362,16 +363,15 @@
       <div id="map"></div>
     </div>
 
-    <!-- Ana veri tablosu -->
+    <!-- Ana veri tablosu (SOS) -->
     <div class="panel">
       <div class="panel-header">
         <h2>
           <span class="live-dot"></span>
-          Son Acil İletişim Kayıtları
+          Son Acil İletişim Kayıtları (SOS)
         </h2>
         <span class="meta">
-          Son güncelleme: <strong id="last-update">–</strong> &nbsp;|&nbsp;
-          Toplam kayıt: <strong id="record-count">0</strong>
+          Toplam SOS: <strong id="record-count">0</strong>
         </span>
       </div>
 
@@ -397,6 +397,32 @@
     </div>
   </div>
 
+  <!-- ── MESAJ TRAFİĞİ GÖRÜNÜMÜ ── -->
+  <div id="view-messages" style="display: none;">
+    <div class="panel">
+      <div class="panel-header">
+        <h2>💬 Canlı Mesajlaşma Akışı (Mesh -> Cloud)</h2>
+        <span class="meta">Toplam Mesaj: <strong id="msg-count">0</strong></span>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Zaman</th>
+              <th>Gönderen ID</th>
+              <th>Alıcı ID</th>
+              <th style="text-align:left;">Mesaj İçeriği</th>
+              <th>Durum</th>
+            </tr>
+          </thead>
+          <tbody id="msg-tbody">
+            <tr><td colspan="5">Mesajlar bekleniyor…</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
   <!-- ── HAKKINDA GÖRÜNÜMÜ ── -->
   <div id="view-about" style="display: none;">
     <div class="panel">
@@ -408,7 +434,7 @@
 
         <h3>Nasıl Çalışır?</h3>
         <ul>
-          <li><strong>İnternetsiz İletişim:</strong> Kullanıcıların cihazları, internet veya operatör şebekesi olmadan Bluetooth ve Wi-Fi Direct teknolojilerini kullanarak birbirine doğrudan bağlanır.</li>
+          <li><strong>İnternetsiz İletişim:</strong> Kullanıcıların cihazları, internet veya operatör şebekesi olmadan Bluetooth ve Wi-Fi Aware teknolojilerini kullanarak birbirine doğrudan bağlanır.</li>
           <li><strong>Ağ Zıplaması (Mesh Hops):</strong> Bir enkaz altından gönderilen SOS sinyali, yakındaki diğer YANKI kullanıcılarının telefonlarından sekerek (hop) ilerler.</li>
           <li><strong>Bulut Senkronizasyonu:</strong> Cihazdan cihaza aktarılan bu sinyal zinciri, güvenli bir bölgede internet bağlantısı olan herhangi bir cihaza ulaştığı an buluta (Firebase) aktarılır.</li>
           <li><strong>Canlı İzleme:</strong> Buluta ulaşan sinyaller, koordinat, pil seviyesi, acil durum tipi ve ağda kaç kere zıpladığı bilgisiyle birlikte eşzamanlı olarak bu panele (Dashboard) düşer.</li>
@@ -447,14 +473,8 @@
     appId: "1:832552007678:web:319ee97b58adfd2ecbb2af"
   };
 
-  if (firebaseConfig.apiKey === "AIzaSyC979HjSm-h0ac-PZjxQHz--icUMJKuGVM") {
-    document.getElementById("config-warning").style.display = "block";
-    document.getElementById("loading-row").querySelector("td").textContent =
-      "⚠️ Firebase yapılandırması eksik. Lütfen index.html dosyasını düzenleyin.";
-    document.getElementById("conn-status").textContent = "⚠️ Yapılandırma eksik";
-  } else {
-    startApp(firebaseConfig);
-  }
+  startApp(firebaseConfig);
+
 
   function startApp(config) {
     const app = initializeApp(config);
@@ -504,7 +524,7 @@
       return { tarih, saat };
     }
 
-    // Tabloyu ve Haritayı Doldur
+    // Tabloyu ve Haritayı Doldur (SOS)
     function renderTable(docs) {
       const tbody = document.getElementById("data-tbody");
       tbody.innerHTML = "";
@@ -558,35 +578,56 @@
       }
 
       document.getElementById("record-count").textContent = docs.length;
-      document.getElementById("last-update").textContent = new Date().toLocaleTimeString("tr-TR");
+    }
+
+    // Mesaj Tablosunu Doldur
+    function renderMessages(docs) {
+      const tbody = document.getElementById("msg-tbody");
+      tbody.innerHTML = "";
+
+      if (docs.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="5">Henüz mesaj yok.</td></tr>`;
+        return;
+      }
+
+      docs.forEach(docSnap => {
+        const d = docSnap.data();
+        const { saat } = formatDate(d.cloud_timestamp);
+
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td>${saat}</td>
+          <td><code>${(d.sender_id || "Bilinmeyen").substring(0,8)}...</code></td>
+          <td><code>${(d.receiver_id || "Herkes").substring(0,8)}...</code></td>
+          <td style="text-align:left; white-space:normal;">${d.content_text || "[Şifreli Veri]"}</td>
+          <td><span class="badge badge-SAFE">İletildi</span></td>
+        `;
+        tbody.appendChild(tr);
+      });
+      document.getElementById("msg-count").textContent = docs.length;
     }
 
     async function init() {
       await loadUsers();
-      const q = query(
-        collection(db, "emergency_signals"),
-        orderBy("created_at", "desc"),
-        limit(100)
-      );
 
-      onSnapshot(q,
-        (snapshot) => {
-          renderTable(snapshot.docs);
-          document.getElementById("conn-status").textContent = "🟢 Canlı bağlı";
-        },
-        (err) => {
-          console.error("Firestore hatası:", err);
-          document.getElementById("conn-status").textContent = "🔴 Bağlantı hatası: " + err.message;
-        }
-      );
+      // SOS Dinle
+      const qSos = query(collection(db, "emergency_signals"), orderBy("created_at", "desc"), limit(50));
+      onSnapshot(qSos, (snap) => renderTable(snap.docs));
+
+      // Mesajları Dinle
+      const qMsg = query(collection(db, "messages"), orderBy("cloud_timestamp", "desc"), limit(50));
+      onSnapshot(qMsg, (snap) => renderMessages(snap.docs));
+
+      document.getElementById("conn-status").textContent = "🟢 Canlı bağlı";
     }
 
     init();
 
-    // ── SEKME KONTROLÜ (Canlı Veriler / Hakkında) ──
+    // ── SEKME KONTROLÜ (Dashboard / Mesajlar / Hakkında) ──
     const navLinks = document.querySelectorAll('.nav-link');
     const viewDashboard = document.getElementById('view-dashboard');
-    const viewAbout = document.getElementById('view-about');
+    const viewMessages  = document.getElementById('view-messages');
+    const viewAbout     = document.getElementById('view-about');
 
     navLinks.forEach(link => {
       link.addEventListener('click', (e) => {
@@ -595,15 +636,12 @@
 
         const target = e.target.getAttribute('data-target');
 
-        if (target === 'dashboard') {
-          viewDashboard.style.display = 'block';
-          viewAbout.style.display = 'none';
+        viewDashboard.style.display = (target === 'dashboard') ? 'block' : 'none';
+        viewMessages.style.display  = (target === 'messages') ? 'block' : 'none';
+        viewAbout.style.display     = (target === 'about') ? 'block' : 'none';
 
-          // Harita tekrar görünür olduğunda Leaflet'in çizimi düzeltmesi için
+        if (target === 'dashboard') {
           setTimeout(() => { map.invalidateSize(); }, 100);
-        } else if (target === 'about') {
-          viewDashboard.style.display = 'none';
-          viewAbout.style.display = 'block';
         }
       });
     });
