@@ -19,11 +19,14 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import com.bedir.yanki.ui.radar.NeighborPoint
 import java.util.UUID
 import javax.inject.Inject
+import kotlin.math.*
 
 @HiltViewModel
+@OptIn(ExperimentalCoroutinesApi::class)
 class MeshViewModel @Inject constructor(
     val repository: YankiRepository,
     @ApplicationContext private val context: Context
@@ -35,10 +38,45 @@ class MeshViewModel @Inject constructor(
     private val _userStatus = MutableStateFlow(UserStatus())
     val userStatus: StateFlow<UserStatus> = _userStatus.asStateFlow()
 
+    val isUserRegistered: StateFlow<Boolean> = repository.isUserRegisteredFlow
+
+    val currentUser: StateFlow<com.bedir.yanki.data.local.entity.UserEntity?> = 
+        isUserRegistered.flatMapLatest { registered ->
+            if (registered) {
+                repository.getUserFlow(repository.currentUserId)
+            } else {
+                flowOf(null)
+            }
+        }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
+
+    val settings: StateFlow<Map<String, Boolean>> = repository.getSettingsFlow()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyMap())
+
+    fun updateSetting(key: String, value: Boolean) {
+        repository.setPreference(key, value)
+    }
+
     init {
         observeMeshData()
         observeMessages()
+        observeBulletins()
+        observeMeshStatus()
         startStatusTracking()
+    }
+
+    private fun observeMeshStatus() {
+        combine(
+            repository.bleMeshManager.isScanning,
+            repository.bleMeshManager.isAdvertising,
+            repository.wifiAwareManager.isAwareActive
+        ) { scanning, advertising, awareActive ->
+            Triple(scanning, advertising, awareActive)
+        }.onEach { (scanning, advertising, awareActive) ->
+            _meshStatus.update { it.copy(
+                isMeshActive = scanning || advertising || awareActive,
+                isWifiAwareActive = awareActive
+            ) }
+        }.launchIn(viewModelScope)
     }
 
     private fun startStatusTracking() {
@@ -46,6 +84,7 @@ class MeshViewModel @Inject constructor(
             while (true) {
                 val battery = getBatteryLevel()
                 val location = getLastLocation()
+                
                 _userStatus.update { 
                     it.copy(
                         batteryLevel = battery,
@@ -53,7 +92,7 @@ class MeshViewModel @Inject constructor(
                         longitude = location?.longitude ?: 0.0
                     )
                 }
-                delay(10000) // 10 saniyede bir güncelle
+                delay(10000) // 10 saniyede bir batarya/konum güncellemesi yeterli
             }
         }
     }
@@ -87,11 +126,34 @@ class MeshViewModel @Inject constructor(
     private val _messages = MutableStateFlow<List<MessageEntity>>(emptyList())
     val allMessages: StateFlow<List<MessageEntity>> = _messages.asStateFlow()
 
+    private val _bulletins = MutableStateFlow<List<com.bedir.yanki.data.local.entity.BulletinEntity>>(emptyList())
+    val allBulletins: StateFlow<List<com.bedir.yanki.data.local.entity.BulletinEntity>> = _bulletins.asStateFlow()
+
     private fun observeMessages() {
         viewModelScope.launch {
             repository.getAllMessagesFlow().collect { messages ->
                 _messages.value = messages
             }
+        }
+    }
+
+    private fun observeBulletins() {
+        viewModelScope.launch {
+            repository.getAllBulletinsFlow().collect { bulletins ->
+                _bulletins.value = bulletins
+            }
+        }
+    }
+
+    fun postBulletin(content: String, type: String) {
+        viewModelScope.launch(Dispatchers.IO) {
+            val location = getLastLocation()
+            repository.postToBulletin(
+                content = content,
+                type = type,
+                lat = location?.latitude ?: 0.0,
+                lon = location?.longitude ?: 0.0
+            )
         }
     }
 
@@ -111,19 +173,28 @@ class MeshViewModel @Inject constructor(
 
     private fun observeMeshData() {
         viewModelScope.launch {
-            repository.getAllUsersFlow().collect { users ->
+            repository.getAllUsersFlow().collect { allUsers ->
                 try {
+                    // Kendi ID'mizi listeden çıkar (Radar'da kendimizi komşu olarak görmeyelim)
+                    val myId = repository.currentUserId
+                    val users = allUsers.filter { it.user_id != myId }
+
                     val calculatedRange = "${users.size * 25}m"
 
-                    // UserEntity listesini RadarView'in beklediği NeighborPoint listesine çevir
+                    // UserEntity listesini RadarView'in beklediği NeighborPoint listesine çevir (Canlı RSSI/Mesafe)
                     val neighborPoints = users.map { user ->
-                        // Her kullanıcı için sabit ama benzersiz bir konum üret (ID'ye göre)
-                        val random = java.util.Random(user.user_id.hashCode().toLong())
-                        val xRatio = (random.nextFloat() * 1.6f) - 0.8f // -0.8 ile 0.8 arası
-                        val yRatio = (random.nextFloat() * 1.6f) - 0.8f
+                        // RSSI verisini mesafeye (yarıçapa) dönüştür: -40 (yakın) -> -100 (uzak)
+                        val rssi = user.last_rssi.toFloat()
+                        val normalizedRadius = ((rssi + 30) / -70f).coerceIn(0.15f, 0.9f)
                         
-                        // Son 30 saniye içinde görüldüyse online sayalım
-                        val isOnline = System.currentTimeMillis() - user.last_seen < 30000
+                        // User ID'ye göre sabit ama her kullanıcı için farklı bir açı (Radyan)
+                        val angle = (abs(user.user_id.hashCode()) % 360) * (PI / 180.0)
+                        
+                        val xRatio = (normalizedRadius * cos(angle)).toFloat()
+                        val yRatio = (normalizedRadius * sin(angle)).toFloat()
+                        
+                        // Son 60 saniye içinde görüldüyse online sayalım
+                        val isOnline = System.currentTimeMillis() - user.last_seen < 60000
                         
                         NeighborPoint(xRatio, yRatio, isOnline)
                     }
@@ -155,22 +226,12 @@ class MeshViewModel @Inject constructor(
     val sosEvent: SharedFlow<String> = _sosEvent.asSharedFlow()
 
     fun sendEmergencySOS(type: String, lat: Double, lon: Double, battery: Int) {
-        // Dispatchers.IO eklendi! Artık Android kızmayacak.
         viewModelScope.launch(Dispatchers.IO) {
             try {
-                val newSignal = EmergencySignalEntity(
-                    signal_id = UUID.randomUUID().toString(),
-                    user_id = repository.currentUserId,
-                    latitude = lat,
-                    longitude = lon,
-                    emergency_type = type,
-                    battery_level = battery,
-                    timestamp = System.currentTimeMillis()
-                )
-                repository.saveEmergencySignal(newSignal)
+                // Repository'deki merkezi SOS fonksiyonunu kullanıyoruz
+                repository.sendEmergencySignal(type, lat, lon, battery)
                 _sosEvent.emit("Acil durum sinyali mesh ağına yayılıyor!")
             } catch (e: Exception) {
-                // Eğer hala hata varsa logcat'e yazdırır, uygulamayı çökertmez
                 e.printStackTrace()
                 _sosEvent.emit("Sinyal gönderilemedi: ${e.message}")
             }
@@ -182,10 +243,29 @@ class MeshViewModel @Inject constructor(
         val intent = Intent(context, com.bedir.yanki.services.MeshService::class.java)
         context.startForegroundService(intent)
     }
+
+    fun logout(onComplete: () -> Unit) {
+        viewModelScope.launch {
+            repository.logout()
+            // Stop service on logout
+            context.stopService(Intent(context, com.bedir.yanki.services.MeshService::class.java))
+            onComplete()
+        }
+    }
+
+    fun clearAllData(onComplete: () -> Unit) {
+        viewModelScope.launch {
+            repository.clearAllData()
+            // Stop service on reset
+            context.stopService(Intent(context, com.bedir.yanki.services.MeshService::class.java))
+            onComplete()
+        }
+    }
 }
 
 data class MeshUiState(
     val isMeshActive: Boolean = false,
+    val isWifiAwareActive: Boolean = false,
     val neighborCount: Int = 0,
     val neighbors: List<com.bedir.yanki.data.local.entity.UserEntity> = emptyList(),
     val neighborPoints: List<NeighborPoint> = emptyList(),

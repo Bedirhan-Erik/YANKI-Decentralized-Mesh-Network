@@ -38,26 +38,56 @@ async function RegisterUser(call, callback) {
 
 async function SendEmergencySignal(call, callback) {
     const signal = call.request;
-    console.log(`[ALERT] SOS! Tür: ${signal.emergency_type} - Pil: %${signal.battery_level}`);
+    console.log(`[ALERT] SOS! Tür: ${signal.emergency_type} - Pil: %${signal.battery_level} - ID: ${signal.signal_id}`);
 
     try {
-        // KRİTİK: .add() yerine .doc(signal_id).set() kullanıyoruz.
-        // Neden? Çünkü aynı SOS sinyali farklı telefonlardan (mesh yoluyla) sunucuya ulaşabilir.
-        // Bu sayede mükerrer kayıt oluşmaz, sadece mevcut kayıt güncellenir.
-        await db.collection('emergency_signals').doc(signal.signal_id).set({
-            user_id: signal.user_id,
-            location: new admin.firestore.GeoPoint(signal.latitude, signal.longitude),
-            emergency_type: signal.emergency_type,
-            battery_level: signal.battery_level,
-            mesh_hops: signal.hop_count, // Analiz için kaç zıplamada geldiği
-            created_at: admin.firestore.Timestamp.fromMillis(parseInt(signal.timestamp)),
-            synced_at: admin.firestore.FieldValue.serverTimestamp()
-        });
+        if (!signal.signal_id || !signal.user_id) {
+            throw new Error("Eksik veri: signal_id veya user_id bulunamadı.");
+        }
 
+        const sosData = {
+            user_id: signal.user_id,
+            user_name: signal.user_name || "Bilinmiyor",
+            location: new admin.firestore.GeoPoint(Number(signal.latitude) || 0, Number(signal.longitude) || 0),
+            emergency_type: signal.emergency_type || "Bilinmiyor",
+            battery_level: Number(signal.battery_level) || 0,
+            mesh_hops: Number(signal.hop_count) || 0,
+            created_at: admin.firestore.Timestamp.fromMillis(Number(signal.timestamp) || Date.now()),
+            synced_at: admin.firestore.FieldValue.serverTimestamp()
+        };
+
+        await db.collection('emergency_signals').doc(signal.signal_id).set(sosData);
+
+        console.log(`🚨 SOS Firestore'a işlendi: ${signal.signal_id} (${signal.emergency_type})`);
         callback(null, { success: true, message: "Acil durum sinyali Firebase'e işlendi." });
     } catch (error) {
-        console.error("SOS Kayıt Hatası:", error);
-        callback(null, { success: false, message: "SOS sinyali buluta yazılamadı." });
+        console.error("❌ SOS Kayıt Hatası:", error);
+        callback(null, { success: false, message: `SOS Yazma Hatası: ${error.message}` });
+    }
+}
+
+async function SyncBulletin(call, callback) {
+    const post = call.request;
+    console.log(`[BULLETIN] Yeni ilan: ${post.post_id} - Gönderen: ${post.sender_name}`);
+
+    try {
+        const bulletinData = {
+            sender_id: post.sender_id,
+            sender_name: post.sender_name,
+            content: post.content,
+            type: post.type,
+            location: new admin.firestore.GeoPoint(Number(post.latitude) || 0, Number(post.longitude) || 0),
+            original_timestamp: admin.firestore.Timestamp.fromMillis(Number(post.timestamp) || Date.now()),
+            cloud_timestamp: admin.firestore.FieldValue.serverTimestamp(),
+            ttl: Number(post.ttl) || 10
+        };
+
+        await db.collection('bulletins').doc(post.post_id).set(bulletinData);
+        console.log(`✅ İlan Firestore'a yazıldı: ${post.post_id}`);
+        callback(null, { success: true, message: "İlan başarıyla senkronize edildi." });
+    } catch (error) {
+        console.error(`❌ İlan (${post.post_id}) Firestore yazma hatası:`, error);
+        callback(null, { success: false, message: `Sunucu Yazma Hatası: ${error.message}` });
     }
 }
 
@@ -69,29 +99,39 @@ async function SyncMessages(call, callback) {
     console.log(`[SYNC] Mesaj alınıyor: ${message.msg_id} - Kimden: ${message.sender_id}`);
 
     try {
-        // gRPC bytes -> Buffer -> String dönüşümü (Eğer içerik metinse)
-        let contentStr = "";
-        if (message.content_blob) {
-            contentStr = Buffer.from(message.content_blob).toString('utf8');
+        if (!message.msg_id || !message.sender_id) {
+            throw new Error("Eksik veri: msg_id veya sender_id bulunamadı.");
         }
 
-        await db.collection('messages').doc(message.msg_id).set({
-            sender_id: message.sender_id,
-            receiver_id: message.receiver_id,
-            content_text: contentStr, // Metin olarak sakla (Arama yapılabilir)
-            content_raw: message.content_blob, // Orijinal byte'ları da sakla
-            original_timestamp: admin.firestore.Timestamp.fromMillis(parseInt(message.timestamp)),
-            cloud_timestamp: admin.firestore.FieldValue.serverTimestamp(),
-            status: message.status,
-            is_synced: true,
-            ttl: message.ttl || 7
-        });
+        // gRPC bytes -> Buffer -> String dönüşümü (Eğer içerik metinse)
+        let contentStr = "";
+        if (message.content_blob && message.content_blob.length > 0) {
+            contentStr = Buffer.from(message.content_blob).toString('utf8');
+        } else {
+            contentStr = "[Boş Mesaj]";
+        }
 
-        console.log(`✅ Mesaj Firestore'a yazıldı: ${message.msg_id}`);
+        const msgData = {
+            sender_id: message.sender_id,
+            sender_name: message.sender_name || "Bilinmiyor",
+            receiver_id: message.receiver_id || "Herkes",
+            content_text: contentStr,
+            content_raw: message.content_blob,
+            original_timestamp: admin.firestore.Timestamp.fromMillis(Number(message.timestamp) || Date.now()),
+            cloud_timestamp: admin.firestore.FieldValue.serverTimestamp(),
+            status: Number(message.status) || 0,
+            is_synced: true,
+            ttl: Number(message.ttl) || 7
+        };
+
+        await db.collection('messages').doc(message.msg_id).set(msgData);
+
+        console.log(`✅ Mesaj Firestore'a yazıldı: ${message.msg_id} -> ${contentStr}`);
         callback(null, { success: true, message: "Mesaj başarıyla senkronize edildi." });
     } catch (error) {
-        console.error(`❌ Mesaj (${message.msg_id}) hatası:`, error);
-        callback(null, { success: false, message: error.message });
+        console.error(`❌ Mesaj (${message.msg_id}) Firestore yazma hatası:`, error);
+        // Hata durumunda istemciye detaylı mesaj dön
+        callback(null, { success: false, message: `Sunucu Yazma Hatası: ${error.message}` });
     }
 }
 
@@ -111,11 +151,17 @@ async function GetNewData(call, callback) {
             .limit(10)
             .get();
 
+        const bulletinsSnapshot = await db.collection('bulletins')
+            .where('original_timestamp', '>', admin.firestore.Timestamp.fromMillis(parseInt(last_sync_time)))
+            .limit(20)
+            .get();
+
         const messages = messagesSnapshot.docs.map(doc => {
             const data = doc.data();
             return {
                 msg_id: doc.id,
                 sender_id: data.sender_id,
+                sender_name: data.sender_name || "",
                 receiver_id: data.receiver_id,
                 content_blob: data.content_raw ? data.content_raw.buffer : Buffer.from(data.content_text),
                 timestamp: data.original_timestamp.toMillis().toString(),
@@ -129,6 +175,7 @@ async function GetNewData(call, callback) {
             return {
                 signal_id: doc.id,
                 user_id: data.user_id,
+                user_name: data.user_name || "",
                 latitude: data.location.latitude,
                 longitude: data.location.longitude,
                 emergency_type: data.emergency_type,
@@ -138,10 +185,25 @@ async function GetNewData(call, callback) {
             };
         });
 
-        callback(null, { messages, signals });
+        const bulletins = bulletinsSnapshot.docs.map(doc => {
+            const data = doc.data();
+            return {
+                post_id: doc.id,
+                sender_id: data.sender_id,
+                sender_name: data.sender_name,
+                content: data.content,
+                timestamp: data.original_timestamp.toMillis().toString(),
+                type: data.type,
+                latitude: data.location.latitude,
+                longitude: data.location.longitude,
+                ttl: data.ttl
+            };
+        });
+
+        callback(null, { messages, signals, bulletins });
     } catch (error) {
         console.error("PULL Hatası:", error);
-        callback(null, { messages: [], signals: [] });
+        callback(null, { messages: [], signals: [], bulletins: [] });
     }
 }
 
@@ -172,6 +234,7 @@ function main() {
         RegisterUser: RegisterUser,
         SendEmergencySignal: SendEmergencySignal,
         SyncMessages: SyncMessages,
+        SyncBulletin: SyncBulletin,
         GetNewData: GetNewData
     });
 
@@ -186,6 +249,46 @@ function main() {
     });
 
     startWebServer();
+
+    // Her 1 saatte bir eski verileri temizle (48 saat sınırı)
+    setInterval(cleanupOldData, 60 * 60 * 1000);
+    // İlk açılışta da bir kez çalıştır
+    cleanupOldData();
+}
+
+async function cleanupOldData() {
+    const threshold = Date.now() - (48 * 60 * 60 * 1000);
+    const thresholdDate = admin.firestore.Timestamp.fromMillis(threshold);
+
+    console.log(`[CLEANUP] 48 saatten eski veriler temizleniyor... (Eşik: ${new Date(threshold).toLocaleString()})`);
+
+    try {
+        // Eski SOS sinyallerini bul ve sil
+        const oldSignals = await db.collection('emergency_signals')
+            .where('created_at', '<', thresholdDate)
+            .get();
+
+        if (!oldSignals.empty) {
+            const batch = db.batch();
+            oldSignals.forEach(doc => batch.delete(doc.ref));
+            await batch.commit();
+            console.log(`[CLEANUP] ${oldSignals.size} adet eski SOS sinyali silindi.`);
+        }
+
+        // Eski ilanları bul ve sil
+        const oldBulletins = await db.collection('bulletins')
+            .where('original_timestamp', '<', thresholdDate)
+            .get();
+
+        if (!oldBulletins.empty) {
+            const batch = db.batch();
+            oldBulletins.forEach(doc => batch.delete(doc.ref));
+            await batch.commit();
+            console.log(`[CLEANUP] ${oldBulletins.size} adet eski ilan silindi.`);
+        }
+    } catch (error) {
+        console.error("[CLEANUP] Hata:", error);
+    }
 }
 
 main();

@@ -25,70 +25,90 @@ class SyncWorker @AssistedInject constructor(
     override suspend fun doWork(): Result = withContext(Dispatchers.IO) {
         try {
             Log.d("YANKI_SYNC", "Senkronizasyon işlemi başlatıldı...")
+            
+            val myProfile = repository.getUser(repository.currentUserId)
+            myProfile?.let { profile ->
+                Log.d("YANKI_SYNC", "Profil sunucuya push ediliyor: ${profile.username}")
+                val isProfileSent = networkClient.updateUserProfileOnServer(ProtoMapper.toProto(profile))
+                if (isProfileSent) {
+                    Log.d("YANKI_SYNC", "Profil sunucuya başarıyla push edildi.")
+                } else {
+                    Log.w("YANKI_SYNC", "Profil push edilemedi (Sunucu hatası veya kapalı).")
+                }
+            }
 
-            // --- 1. PULL: Sunucudan yeni verileri çek (Çift yönlü senkronizasyon) ---
+            // --- 1. PULL: Sunucudan yeni verileri çek ---
             val lastSync = repository.sharedPreferences.getLong("last_cloud_sync", 0L)
             val pullResponse = networkClient.pullNewDataFromServer(repository.currentUserId, lastSync)
             
+            var pullSuccess = false
             pullResponse?.let { payload ->
+                pullSuccess = true
                 Log.d("YANKI_SYNC", "Sunucudan veri çekildi: ${payload.messagesCount} mesaj, ${payload.signalsCount} SOS")
                 
-                // Mesajları kaydet
-                payload.messagesList.forEach { protoMsg ->
-                    val entity = ProtoMapper.fromProto(protoMsg)
-                    repository.saveMessage(entity)
-                    
-                    // Eğer bu mesaj bizim değilse ve mesh üzerinden yayılması gerekiyorsa
-                    // status = STATUS_RELAYED (1) olarak işaretleyip mesh'e bırakabiliriz
+                // Klasik for döngüsü suspend fonksiyonlar için daha güvenlidir
+                for (msg in payload.messagesList) {
+                    try { repository.saveMessage(ProtoMapper.fromProto(msg)) } catch (e: Exception) { Log.e("YANKI_SYNC", "Mesaj kaydedilemedi", e) }
+                }
+                for (sig in payload.signalsList) {
+                    try { repository.saveEmergencySignal(ProtoMapper.fromProtoSOS(sig)) } catch (e: Exception) { Log.e("YANKI_SYNC", "SOS kaydedilemedi", e) }
+                }
+                for (bul in payload.bulletinsList) {
+                    try { repository.saveBulletin(ProtoMapper.fromProto(bul)) } catch (e: Exception) { Log.e("YANKI_SYNC", "İlan kaydedilemedi", e) }
+                }
+                for (user in payload.usersList) {
+                    try { repository.saveUser(ProtoMapper.fromProto(user)) } catch (e: Exception) { Log.e("YANKI_SYNC", "Kullanıcı kaydedilemedi", e) }
                 }
 
-                // SOS sinyallerini kaydet
-                payload.signalsList.forEach { protoSos ->
-                    val entity = ProtoMapper.fromProtoSOS(protoSos)
-                    repository.saveEmergencySignal(entity)
-                }
-
-                // Senkronizasyon zamanını güncelle
                 repository.sharedPreferences.edit().putLong("last_cloud_sync", System.currentTimeMillis()).apply()
             }
 
-            // --- 2. PUSH: Henüz buluta gönderilmemiş verileri gönder ---
+            // --- 2. PUSH: Yerel verileri gönder ---
             val unsyncedMessages = repository.getUnsyncedMessages()
             val unsyncedSignals = repository.getAllSignals().filter { !it.is_synced }
+            val unsyncedBulletins = repository.getUnsyncedBulletins()
 
-            if (unsyncedMessages.isEmpty() && unsyncedSignals.isEmpty()) {
-                Log.d("YANKI_SYNC", "Gönderilecek yeni veri bulunamadı.")
-                return@withContext Result.success()
+            if (!pullSuccess && unsyncedMessages.isEmpty() && unsyncedSignals.isEmpty() && unsyncedBulletins.isEmpty()) {
+                return@withContext Result.success() // İş bitti
             }
 
-            var allSuccess = true
-
-            // 2. Mesajları Gönder
-            unsyncedMessages.forEach { entity ->
-                val isSent = networkClient.sendMessageToServer(ProtoMapper.toProto(entity))
-                if (isSent) {
-                    repository.markMessageAsSynced(entity.msg_id)
+            var pushSuccess = true
+            
+            // Mesaj Push
+            for (msg in unsyncedMessages) {
+                if (networkClient.sendMessageToServer(ProtoMapper.toProto(msg))) {
+                    repository.markMessageAsSynced(msg.msg_id)
                 } else {
-                    allSuccess = false
+                    pushSuccess = false
+                }
+            }
+            // SOS Push
+            for (sig in unsyncedSignals) {
+                if (networkClient.sendEmergencyToServer(ProtoMapper.toProtoSOS(sig))) {
+                    repository.markSignalAsSynced(sig.signal_id)
+                } else {
+                    pushSuccess = false
+                }
+            }
+            // İlan Push
+            for (bul in unsyncedBulletins) {
+                if (networkClient.sendBulletinToServer(ProtoMapper.toProto(bul))) {
+                    repository.markBulletinAsSynced(bul.post_id)
+                } else {
+                    pushSuccess = false
                 }
             }
 
-            // 3. SOS Sinyallerini Gönder
-            unsyncedSignals.forEach { entity ->
-                val isSent = networkClient.sendEmergencyToServer(ProtoMapper.toProtoSOS(entity))
-                if (isSent) {
-                    // SOS sinyalleri için de senkronize edildi işareti (EmergencySignalEntity'e is_synced alanı eklendiği varsayılıyor)
-                    repository.markSignalAsSynced(entity.signal_id)
-                } else {
-                    allSuccess = false
-                }
+            if (pullSuccess && pushSuccess) Result.success() else Result.retry()
+
+        } catch (e: Throwable) {
+            // CancellationException'ı WorkManager'ın kendi yönetimine bırakmalıyız
+            if (e is kotlinx.coroutines.CancellationException) {
+                Log.w("YANKI_SYNC", "Senkronizasyon işi WorkManager/Sistem tarafından durduruldu.")
+                throw e
             }
-
-            if (allSuccess) Result.success() else Result.retry()
-
-        } catch (e: Exception) {
-            Log.e("YANKI_SYNC", "Senkronizasyon sırasında kritik hata: ${e.message}")
-            // Beklenmedik bir hata (örn: sunucu kapalı) durumunda tekrar dene
+            // Diğer tüm hataları (NoSuchMethodError vb.) burada yakalayıp detaylı loglayalım
+            Log.e("YANKI_SYNC", "Senkronizasyon sırasında KRİTİK HATA oluştu!", e)
             Result.retry()
         }
     }

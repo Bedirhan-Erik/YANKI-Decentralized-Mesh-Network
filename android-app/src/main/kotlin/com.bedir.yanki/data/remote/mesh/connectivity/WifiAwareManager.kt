@@ -14,6 +14,15 @@ import android.os.Looper
 import android.util.Log
 import androidx.annotation.RequiresApi
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asSharedFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.launch
 import java.net.ServerSocket
 import java.io.DataInputStream
 import java.io.DataOutputStream
@@ -22,31 +31,30 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 @Singleton
-@SuppressLint("MissingPermission") // İzinleri UI tarafında hallettiğimizi varsayıyoruz
+@SuppressLint("MissingPermission")
 class WifiAwareManager @Inject constructor(
     @ApplicationContext private val context: Context
 ) {
-    private val wifiAwareSystemManager = context.getSystemService(Context.WIFI_AWARE_SERVICE) as android.net.wifi.aware.WifiAwareManager?
+    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    
+    private val _isAwareActive = MutableStateFlow(false)
+    val isAwareActive: StateFlow<Boolean> = _isAwareActive.asStateFlow()
+
     private var awareSession: WifiAwareSession? = null
     private var currentDiscoverySession: DiscoverySession? = null
     
     private var isPublishing = false
     private var isSubscribing = false
 
+    private val _dataReceivedFlow = MutableSharedFlow<ByteArray>(extraBufferCapacity = 64)
+    val dataReceivedFlow = _dataReceivedFlow.asSharedFlow()
+
+    private val _socketReadyFlow = MutableSharedFlow<Socket>(extraBufferCapacity = 5)
+    val socketReadyFlow = _socketReadyFlow.asSharedFlow()
+
     companion object {
         private const val YANKI_AWARE_SERVICE_NAME = "YANKI_AWARE_MESH"
         private const val YANKI_PSK_PASSPHRASE = "YANKI_GIZLI_SIFRE_123"
-    }
-
-    private var onDataReceived: ((ByteArray) -> Unit)? = null
-    private var onSocketReady: ((Socket) -> Unit)? = null
-
-    fun setOnDataReceivedListener(listener: (ByteArray) -> Unit) {
-        onDataReceived = listener
-    }
-
-    fun setOnSocketReadyListener(listener: (Socket) -> Unit) {
-        onSocketReady = listener
     }
 
     // 1. ADIM: Sisteme Bağlan (Attach)
@@ -63,7 +71,6 @@ class WifiAwareManager @Inject constructor(
         }
 
         if (awareSession != null) {
-            Log.d("YANKI_AWARE", "Oturum zaten açık.")
             onAttached()
             return
         }
@@ -71,22 +78,20 @@ class WifiAwareManager @Inject constructor(
         wifiAwareManager.attach(object : AttachCallback() {
             override fun onAttached(session: WifiAwareSession) {
                 awareSession = session
-                Log.d("YANKI_AWARE", "Wi-Fi Aware oturumu başarıyla açıldı.")
+                _isAwareActive.value = true
                 onAttached()
             }
 
             override fun onAttachFailed() {
                 Log.e("YANKI_AWARE", "Wi-Fi Aware oturumu açılamadı.")
+                _isAwareActive.value = false
             }
         }, Handler(Looper.getMainLooper()))
     }
 
     // 2. ADIM: Yayıncı Ol
     fun startPublishing() {
-        if (isPublishing) {
-            Log.d("YANKI_AWARE", "Yayın zaten aktif.")
-            return
-        }
+        if (isPublishing) return
 
         val config = PublishConfig.Builder()
             .setServiceName(YANKI_AWARE_SERVICE_NAME)
@@ -96,11 +101,9 @@ class WifiAwareManager @Inject constructor(
             override fun onPublishStarted(session: PublishDiscoverySession) {
                 currentDiscoverySession = session
                 isPublishing = true
-                Log.d("YANKI_AWARE", "Yayıncı: Servis yayını başladı!")
             }
 
             override fun onMessageReceived(peerHandle: PeerHandle, message: ByteArray) {
-                Log.d("YANKI_AWARE", "Yayıncı: Mesaj (Port/IP) geldi, ağ kuruluyor...")
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
                     createNetworkForPublisher(peerHandle)
                 }
@@ -108,17 +111,13 @@ class WifiAwareManager @Inject constructor(
             
             override fun onSessionTerminated() {
                 isPublishing = false
-                Log.d("YANKI_AWARE", "Yayıncı oturumu sonlandırıldı.")
             }
         }, Handler(Looper.getMainLooper()))
     }
 
     // 3. ADIM: Dinleyici Ol
     fun startSubscribing() {
-        if (isSubscribing) {
-            Log.d("YANKI_AWARE", "Tarama zaten aktif.")
-            return
-        }
+        if (isSubscribing) return
 
         val config = SubscribeConfig.Builder()
             .setServiceName(YANKI_AWARE_SERVICE_NAME)
@@ -128,7 +127,6 @@ class WifiAwareManager @Inject constructor(
             override fun onSubscribeStarted(session: SubscribeDiscoverySession) {
                 currentDiscoverySession = session
                 isSubscribing = true
-                Log.d("YANKI_AWARE", "Dinleyici: Tarama başladı...")
             }
 
             override fun onServiceDiscovered(
@@ -136,29 +134,20 @@ class WifiAwareManager @Inject constructor(
                 serviceSpecificInfo: ByteArray,
                 matchFilter: List<ByteArray>
             ) {
-                Log.d("YANKI_AWARE", "Dinleyici: Yayıncı BULUNDU! Bağlantı isteği gönderiliyor...")
-                // Karşı tarafa "ben buradayım, ağ kuralım" mesajı gönder
                 currentDiscoverySession?.sendMessage(peerHandle, 0, "CONNECT_REQ".toByteArray())
                 
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                    // IPv6 adresi NAN protokolü içinde otomatik çözülür, 
-                    // şimdilik default port ve link-local üzerinden deniyoruz
                     createNetworkForSubscriber(peerHandle, 8888, "fe80::") 
                 }
             }
 
             override fun onSessionTerminated() {
                 isSubscribing = false
-                Log.d("YANKI_AWARE", "Dinleyici oturumu sonlandırıldı.")
             }
         }, Handler(Looper.getMainLooper()))
     }
 
     private val connectivityManager = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
-
-    // ==========================================
-    // --- 4. AĞ KÖPRÜSÜNÜ (SOCKET) KURMA ---
-    // ==========================================
 
     @RequiresApi(Build.VERSION_CODES.Q)
     fun createNetworkForPublisher(peerHandle: PeerHandle) {
@@ -175,23 +164,17 @@ class WifiAwareManager @Inject constructor(
 
         connectivityManager.requestNetwork(networkRequest, object : ConnectivityManager.NetworkCallback() {
             override fun onAvailable(network: Network) {
-                Log.d("YANKI_AWARE", "Yayıncı: Sanal Ağ Kuruldu!")
-
-                Thread {
+                scope.launch {
                     try {
-                        val serverSocket = ServerSocket(8888)
-                        val clientSocket = serverSocket.accept()
-                        serverSocket.close() // Sadece bir bağlantı bekliyoruz
-
-                        Log.d("YANKI_AWARE", "Bağlantı kabul edildi.")
-                        onSocketReady?.invoke(clientSocket)
-                        receiveDataOverSocket(clientSocket) { data ->
-                            onDataReceived?.invoke(data)
+                        ServerSocket(8888).use { serverSocket ->
+                            val clientSocket = serverSocket.accept()
+                            _socketReadyFlow.emit(clientSocket)
+                            receiveDataOverSocket(clientSocket)
                         }
                     } catch (e: Exception) {
                         Log.e("YANKI_AWARE", "Sunucu Soket Hatası: ${e.message}")
                     }
-                }.start()
+                }
             }
         })
     }
@@ -211,24 +194,15 @@ class WifiAwareManager @Inject constructor(
 
         connectivityManager.requestNetwork(networkRequest, object : ConnectivityManager.NetworkCallback() {
             override fun onAvailable(network: Network) {
-                Log.d("YANKI_AWARE", "Dinleyici: Sanal Ağ Kuruldu!")
-
-                Thread {
+                scope.launch {
                     try {
-                        // NOT: fe80:: adresi link-local başlangıcıdır. Wi-Fi Aware ağında
-                        // yayıncıya bağlanmak için gerçek IPv6 adresi gereklidir.
                         val socket = network.socketFactory.createSocket(publisherIpv6, publisherPort)
-                        Log.d("YANKI_AWARE", "Dinleyici: Bağlandı: ${socket.inetAddress}")
-                        
-                        onSocketReady?.invoke(socket)
-                        
-                        receiveDataOverSocket(socket) { data ->
-                            onDataReceived?.invoke(data)
-                        }
+                        _socketReadyFlow.emit(socket)
+                        receiveDataOverSocket(socket)
                     } catch (e: Exception) {
                         Log.e("YANKI_AWARE", "İstemci Soket Hatası: ${e.message}")
                     }
-                }.start()
+                }
             }
         })
     }
@@ -240,55 +214,37 @@ class WifiAwareManager @Inject constructor(
         awareSession = null
         isPublishing = false
         isSubscribing = false
-        Log.d("YANKI_AWARE", "Wi-Fi Aware kapatıldı.")
+        _isAwareActive.value = false
     }
-    // ==========================================
-    // --- 5. VERİ TRANSFERİ (AKIKIŞ) KONTROLÜ ---
-    // ==========================================
 
-    // Soket üzerinden karşıya devasa paketleri fırlatma
     fun sendDataOverSocket(socket: Socket, payload: ByteArray) {
-        Thread {
+        scope.launch {
             try {
-                // Veriyi yollamak için bir "çıkış borusu" (OutputStream) oluşturuyoruz
                 val outputStream = DataOutputStream(socket.getOutputStream())
-
-                Log.d("YANKI_AWARE", "Gönderilecek veri boyutu: ${payload.size} byte")
-
-                // 1. Karşı tarafa önce paketin ne kadar büyük olduğunu söylüyoruz
                 outputStream.writeInt(payload.size)
-
-                // 2. Ardından verinin kendisini (Protobuf baytlarını) basıyoruz
                 outputStream.write(payload)
-                outputStream.flush() // Boruda kalanları zorla it
-
-                Log.d("YANKI_AWARE", "Veri başarıyla karşıya fırlatıldı!")
-
+                outputStream.flush()
             } catch (e: Exception) {
                 Log.e("YANKI_AWARE", "Veri Gönderme Hatası: ${e.message}")
             }
-        }.start()
+        }
     }
 
-    // Karşıdan gelen paketi karşılama
-    fun receiveDataOverSocket(socket: Socket, onDataReceived: (ByteArray) -> Unit) {
-        Thread {
-            try {
-                val inputStream = DataInputStream(socket.getInputStream())
-
-                while (!socket.isClosed) {
-                    val payloadSize = inputStream.readInt()
-                    if (payloadSize <= 0) break
-                    
-                    val payload = ByteArray(payloadSize)
-                    inputStream.readFully(payload)
-                    onDataReceived(payload)
-                }
-            } catch (e: Exception) {
-                Log.e("YANKI_AWARE", "Veri Okuma Hatası veya Bağlantı Koptu: ${e.message}")
-            } finally {
-                try { socket.close() } catch (_: Exception) {}
+    private suspend fun receiveDataOverSocket(socket: Socket) {
+        try {
+            val inputStream = DataInputStream(socket.getInputStream())
+            while (!socket.isClosed) {
+                val payloadSize = inputStream.readInt()
+                if (payloadSize <= 0) break
+                
+                val payload = ByteArray(payloadSize)
+                inputStream.readFully(payload)
+                _dataReceivedFlow.emit(payload)
             }
-        }.start()
+        } catch (e: Exception) {
+            Log.e("YANKI_AWARE", "Bağlantı Koptu: ${e.message}")
+        } finally {
+            try { socket.close() } catch (_: Exception) {}
+        }
     }
 }

@@ -4,53 +4,190 @@ import android.util.Log
 import com.bedir.yanki.data.local.dao.UserDao
 import com.bedir.yanki.data.local.dao.MessageDao
 import com.bedir.yanki.data.local.dao.EmergencySignalDao
+import com.bedir.yanki.data.local.dao.BulletinDao
 import com.bedir.yanki.data.local.entity.UserEntity
 import com.bedir.yanki.data.local.entity.MessageEntity
 import com.bedir.yanki.data.local.entity.EmergencySignalEntity
+import com.bedir.yanki.data.local.entity.BulletinEntity
 import com.bedir.yanki.data.remote.mesh.connectivity.BleMeshManager
 import com.bedir.yanki.data.remote.mesh.connectivity.WifiAwareManager
 import com.bedir.yanki.data.mapper.ProtoMapper
+import com.bedir.yanki.util.NotificationHelper
 import androidx.core.content.edit
 import com.bedir.yanki.security.SecurityManager
+import dagger.hilt.android.qualifiers.ApplicationContext
+import android.content.Context
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.launch
 import java.util.UUID
 import javax.inject.Inject
 import javax.inject.Singleton
 
+import com.bedir.yanki.data.local.YankiDatabase
+import androidx.room.withTransaction
+
 @Singleton
 class YankiRepository @Inject constructor(
+    private val database: YankiDatabase,
     private val userDao: UserDao,
     private val messageDao: MessageDao,
     private val emergencySignalDao: EmergencySignalDao,
-    private val bleMeshManager: BleMeshManager,
-    private val wifiAwareManager: WifiAwareManager,
+    private val bulletinDao: BulletinDao,
+    val bleMeshManager: BleMeshManager,
+    val wifiAwareManager: WifiAwareManager,
     private val securityManager: SecurityManager,
-    val sharedPreferences: android.content.SharedPreferences
+    private val notificationHelper: NotificationHelper,
+    val sharedPreferences: android.content.SharedPreferences,
+    @ApplicationContext private val context: Context
 ) {
+    // ... (mevcut kodlar)
+
+    // ==========================================
+    // --- İLAN TAHTASI (BULLETIN) İŞLEMLERİ ---
+    // ==========================================
+    fun getAllBulletinsFlow() = bulletinDao.getAllPostsFlow()
+    suspend fun getUnsyncedBulletins() = bulletinDao.getUnsyncedPosts()
+    suspend fun markBulletinAsSynced(postId: String) = bulletinDao.markAsSynced(postId)
+    suspend fun saveBulletin(post: BulletinEntity) = bulletinDao.insertPost(post)
+
+    suspend fun postToBulletin(content: String, type: String, lat: Double, lon: Double) {
+        val user = userDao.getUserById(currentUserId)
+        val post = BulletinEntity(
+            post_id = UUID.randomUUID().toString(),
+            sender_id = currentUserId,
+            sender_name = user?.full_name ?: user?.username ?: "Anonim",
+            content = content,
+            timestamp = System.currentTimeMillis(),
+            type = type,
+            latitude = lat,
+            longitude = lon,
+            ttl = 10 // 10 zıplama (hop) boyunca yayılabilir
+        )
+        
+        bulletinDao.insertPost(post)
+        Log.d("YANKI_BULLETIN", "Yeni ilan yerel tahtaya eklendi. Yayılıyor...")
+        
+        // Gossip protokolünü tetikle (Hemen duyur)
+        triggerGossipProtocol("", "")
+    }
+
+    private suspend fun handleIncomingBulletin(post: BulletinEntity) {
+        if (bulletinDao.isPostExists(post.post_id)) return
+        
+        if (post.ttl > 0) {
+            val relayedPost = post.copy(ttl = post.ttl - 1)
+            bulletinDao.insertPost(relayedPost)
+            Log.d("YANKI_BULLETIN", "Yeni ilan ağdan alındı ve kaydedildi: ${post.content}")
+            
+            // TODO: Burada bildirim gönderilecek
+            notificationHelper.showBulletinNotification(relayedPost)
+        }
+    }
     companion object {
         const val STATUS_RECEIVED = 0
         const val STATUS_RELAYED = 1
     }
 
     val currentUserId: String
-        get() = sharedPreferences.getString("user_id", "USER_${UUID.randomUUID().toString().take(8)}") ?: "MY_LOCAL_USER_ID"
+        get() = sharedPreferences.getString("user_id", null) ?: "GUEST"
 
-    init {
-        // user_id yoksa oluştur ve kaydet
-        if (!sharedPreferences.contains("user_id")) {
-            sharedPreferences.edit { putString("user_id", currentUserId) }
-        }
-    }
+    private val _isUserRegistered = MutableStateFlow(sharedPreferences.contains("user_id"))
+    val isUserRegisteredFlow: StateFlow<Boolean> = _isUserRegistered.asStateFlow()
+
+    val isUserRegistered: Boolean
+        get() = sharedPreferences.contains("user_id")
+
+    private var isMeshListening = false
 
     // ==========================================
     // --- 1. KULLANICI İŞLEMLERİ ---
     // ==========================================
-    suspend fun saveUser(user: UserEntity) = userDao.insertOrUpdateUser(user)
+    suspend fun saveUser(user: UserEntity) {
+        userDao.insertOrUpdateUser(user)
+        // Eğer kaydedilen kullanıcı "biz" isek, SharedPreferences'a ID'yi yazalım
+        if (user.is_trusted && sharedPreferences.getString("user_id", null) == null) {
+            sharedPreferences.edit { putString("user_id", user.user_id) }
+            _isUserRegistered.value = true
+        }
+    }
+    
     suspend fun getUser(userId: String) = userDao.getUserById(userId)
+    fun getUserFlow(userId: String) = userDao.getUserFlow(userId)
     fun getAllUsersFlow() = userDao.getAllUsersFlow()
     suspend fun getAllUsers() = userDao.getAllUsers()
+
+    suspend fun updateUserHealth(
+        bloodType: String? = null,
+        allergies: String? = null,
+        medications: String? = null,
+        emergencyContact: String? = null
+    ) {
+        val userId = currentUserId
+        val user = userDao.getUserById(userId) ?: return
+        
+        val updatedUser = user.copy(
+            blood_type = bloodType ?: user.blood_type,
+            allergies = allergies ?: user.allergies,
+            medications = medications ?: user.medications,
+            emergency_contact = emergencyContact ?: user.emergency_contact
+        )
+        
+        userDao.insertOrUpdateUser(updatedUser)
+        
+        // ÖNEMLİ: Profil güncellendiğinde ağa duyur!
+        broadcastIdentityUpdate(updatedUser)
+    }
+
+    private suspend fun broadcastIdentityUpdate(user: UserEntity) {
+        val identityPayload = ProtoMapper.packageAll(
+            signals = emptyList(),
+            messages = emptyList(),
+            users = listOf(user)
+        )
+        
+        // Aktif komşulara BLE üzerinden gönder
+        val neighbors = userDao.getAllUsers()
+        neighbors.forEach { neighbor ->
+            if (!neighbor.last_mac.isNullOrBlank() && System.currentTimeMillis() - neighbor.last_seen < 60000) {
+                bleMeshManager.sendPayloadToNeighbor(neighbor.last_mac!!, identityPayload)
+            }
+        }
+        
+        // Wi-Fi Aware üzerinden duyur
+        wifiAwareManager.attachToAwareSystem {
+            wifiAwareManager.startPublishing()
+        }
+    }
+
+    suspend fun ensureUserKeys() {
+        getMySecretKey()
+    }
+
+    suspend fun logout() {
+        sharedPreferences.edit { 
+            remove("user_id")
+        }
+        _isUserRegistered.value = false
+    }
+
+    suspend fun clearAllData() {
+        userDao.deleteAllUsers()
+        messageDao.deleteAllMessages()
+        emergencySignalDao.deleteAllSignals()
+        sharedPreferences.edit { clear() }
+        _isUserRegistered.value = false
+    }
+
+    suspend fun cleanupOldBulletins() {
+        // 48 saatten eski ilan ve SOS verilerini temizle
+        val threshold = System.currentTimeMillis() - (48 * 60 * 60 * 1000L)
+        bulletinDao.deleteOldPosts(threshold)
+        emergencySignalDao.deleteOldSignals(threshold)
+        Log.d("YANKI_CLEANUP", "48 saatten eski veriler yerel veritabanından temizlendi.")
+    }
 
     // ==========================================
     // --- 2. MESAJ İŞLEMLERİ ---
@@ -59,11 +196,7 @@ class YankiRepository @Inject constructor(
     suspend fun getUnsyncedMessages() = messageDao.getUnsyncedMessages()
     suspend fun markMessageAsSynced(msgId: String) = messageDao.markAsSynced(msgId)
     suspend fun markSignalAsSynced(signalId: String) {
-        // EmergencySignalEntity'de is_synced alanını güncelle
-        val signal = emergencySignalDao.getAllSignals().find { it.signal_id == signalId }
-        signal?.let {
-            emergencySignalDao.insertSignal(it.copy(is_synced = true))
-        }
+        emergencySignalDao.markAsSynced(signalId)
     }
     fun getChatHistory(userId: String) = messageDao.getChatHistory(userId)
     fun getAllMessagesFlow() = messageDao.getAllMessages()
@@ -71,7 +204,6 @@ class YankiRepository @Inject constructor(
 
     suspend fun sendMessage(content: String, receiverId: String) {
         try {
-            ensureLocalUserExists()
             val messageBytes = content.toByteArray()
 
             // Mesajı imzala
@@ -82,15 +214,17 @@ class YankiRepository @Inject constructor(
                     signature = securityManager.signData(messageBytes, privateKey)
                 }
             } catch (t: Throwable) {
-                Log.e("YANKI_REPO", "Mesaj imzalama hatası (Kritik değil ama imzasız gidecek): ${t.message}")
+                Log.e("YANKI_REPO", "Mesaj imzalama hatası: ${t.message}")
             }
 
+            val myProfile = userDao.getUserById(currentUserId)
             val messageEntity = MessageEntity(
                 msg_id = UUID.randomUUID().toString(),
                 sender_id = currentUserId,
+                sender_name = myProfile?.full_name ?: myProfile?.username ?: "Anonim",
                 receiver_id = receiverId,
                 content_blob = messageBytes,
-                signature = signature ?: byteArrayOf(), // NULL yerine boş dizi göndererek çökme önlenir
+                signature = signature ?: byteArrayOf(),
                 timestamp = System.currentTimeMillis(),
                 status = STATUS_RELAYED,
                 is_synced = false,
@@ -100,7 +234,10 @@ class YankiRepository @Inject constructor(
             saveMessage(messageEntity)
             Log.d("YANKI_REPO", "Mesaj yerel veritabanına kaydedildi: ${messageEntity.msg_id}")
             
-            // Komşu listesini kontrol et ve hemen gönderim yapmayı dene
+            // --- YENİ: İnternet Varsa Hemen Buluta Gönder ---
+            triggerImmediateCloudSync()
+
+            // Komşu listesini kontrol et ve mesh üzerinden gönderim yapmayı dene
             val neighbors = userDao.getAllUsers()
             val currentTime = System.currentTimeMillis()
             
@@ -149,16 +286,18 @@ class YankiRepository @Inject constructor(
             val keyPair = securityManager.generateUserKeyPair()
             
             // FİX: Doğru sözdizimi ve null safety
-            val newKey = keyPair?.secretKey?.asBytes ?: ByteArray(32)
+            val newSecret = keyPair?.secretKey?.asBytes ?: ByteArray(32)
+            val newPublic = keyPair?.publicKey?.asBytes ?: ByteArray(32)
             
             try {
                 sharedPreferences.edit { 
-                    putString("secret_key", java.util.Base64.getEncoder().encodeToString(newKey)) 
+                    putString("secret_key", java.util.Base64.getEncoder().encodeToString(newSecret))
+                    putString("public_key", java.util.Base64.getEncoder().encodeToString(newPublic))
                 }
             } catch (e: Exception) {
-                Log.e("YANKI_REPO", "Gizli anahtar kaydedilemedi")
+                Log.e("YANKI_REPO", "Anahtarlar kaydedilemedi")
             }
-            newKey
+            newSecret
         }
     }
 
@@ -169,7 +308,7 @@ class YankiRepository @Inject constructor(
 
             // Mesaj imzasını doğrula
             val sender = userDao.getUserById(incomingMessage.sender_id)
-            if (sender != null && incomingMessage.signature != null) {
+            if (sender != null && sender.public_key.isNotEmpty() && incomingMessage.signature != null) {
                 try {
                     val isValid = securityManager.verifySignature(
                         data = incomingMessage.content_blob,
@@ -178,7 +317,6 @@ class YankiRepository @Inject constructor(
                     )
                     if (!isValid) {
                         Log.w("YANKI_SECURITY", "Geçersiz mesaj imzası tespit edildi! MsgID: ${incomingMessage.msg_id}")
-                        return 
                     }
                 } catch (t: Throwable) {
                     Log.e("YANKI_SECURITY", "İmza doğrulama sırasında fatal hata: ${t.message}")
@@ -207,65 +345,100 @@ class YankiRepository @Inject constructor(
     suspend fun saveEmergencySignal(signal: EmergencySignalEntity) = emergencySignalDao.insertSignal(signal)
     suspend fun getAllSignals() = emergencySignalDao.getAllSignals()
 
-    suspend fun handleEmergencySignal(signal: EmergencySignalEntity) {
-        if (emergencySignalDao.isSignalExists(signal.signal_id)) return
-        emergencySignalDao.insertSignal(signal)
-
-        if (signal.hop_count < 10) {
-            val relayedSignal = signal.copy(hop_count = signal.hop_count + 1)
-            Log.d("YANKI_MESH", "SOS Sinyali yönlendiriliyor: ${relayedSignal.signal_id}")
+    suspend fun sendEmergencySignal(type: String, lat: Double, lon: Double, battery: Int) {
+        val myProfile = userDao.getUserById(currentUserId)
+        
+        val signal = EmergencySignalEntity(
+            signal_id = UUID.randomUUID().toString(),
+            user_id = currentUserId,
+            user_name = myProfile?.full_name ?: myProfile?.username ?: "Anonim",
+            latitude = lat,
+            longitude = lon,
+            emergency_type = type,
+            battery_level = battery,
+            timestamp = System.currentTimeMillis(),
+            is_synced = false,
+            hop_count = 0,
+            blood_type = myProfile?.blood_type,
+            allergies = myProfile?.allergies,
+            medications = myProfile?.medications
+        )
+        saveEmergencySignal(signal)
+        Log.d("YANKI_REPO", "SOS Sinyali yerel veritabanına kaydedildi. Bulut tetikleniyor...")
+        
+        // Önemli: Direkt buluta çıkmayı dene
+        triggerImmediateCloudSync()
+        
+        // Komşulara mesh üzerinden yay
+        val neighbors = userDao.getAllUsers()
+        neighbors.forEach { neighbor ->
+            if (!neighbor.last_mac.isNullOrBlank()) {
+                val payload = ProtoMapper.packageSOSOnly(listOf(signal))
+                bleMeshManager.sendPayloadToNeighbor(neighbor.last_mac!!, payload)
+            }
         }
     }
 
-    private suspend fun ensureLocalUserExists() {
-        val existing = userDao.getUserById(currentUserId)
-        if (existing == null) {
-            Log.d("YANKI_REPO", "Yerel kullanıcı bulunamadı, yeni kimlik oluşturuluyor...")
-            val keyPair = securityManager.generateUserKeyPair()
-            
-            // KRİTİK: Eğer kütüphane yüklenemediyse boş bir anahtar ile devam et (Çökme engellenir)
-            val publicKeyBytes = keyPair?.publicKey?.asBytes ?: byteArrayOf()
-            
-            val localUser = UserEntity(
-                user_id = currentUserId,
-                username = "Ben (Kendi Cihazım)",
-                public_key = publicKeyBytes,
-                last_seen = System.currentTimeMillis(),
-                is_trusted = true
-            )
-            userDao.insertOrUpdateUser(localUser)
+    suspend fun handleEmergencySignal(signal: EmergencySignalEntity) {
+        if (emergencySignalDao.isSignalExists(signal.signal_id)) return
+        emergencySignalDao.insertSignal(signal)
+        
+        // SOS bildirimi göster
+        notificationHelper.showSOSNotification(signal)
+
+        // Sinyali buluta hemen göndermeyi dene
+        triggerImmediateCloudSync()
+
+        // KRİTİK: Diğer komşulara fırlat (YAYILIM)
+        if (signal.hop_count < 10) {
+            val relayedSignal = signal.copy(hop_count = signal.hop_count + 1)
+            val neighbors = userDao.getAllUsers()
+            neighbors.forEach { neighbor ->
+                if (!neighbor.last_mac.isNullOrBlank()) {
+                    val payload = ProtoMapper.packageSOSOnly(listOf(relayedSignal))
+                    bleMeshManager.sendPayloadToNeighbor(neighbor.last_mac!!, payload)
+                }
+            }
         }
     }
 
     // ==========================================
     // --- 4. MESH & GOSSIP PROTOKOLÜ ---
     // ==========================================
-    fun startListeningForMeshPayloads() {
+    fun startListeningForMeshPayloads(scope: CoroutineScope) {
+        if (isMeshListening) return
+        isMeshListening = true
+
         // 1. BLE'den gelenleri dinle
-        bleMeshManager.setOnDataReceivedListener { data ->
-            processIncomingPayload(data)
+        scope.launch {
+            bleMeshManager.dataReceivedFlow.collect { data ->
+                processIncomingPayload(data, scope)
+            }
         }
 
-        // 2. Wi-Fi Aware'den gelenleri dinle
-        wifiAwareManager.setOnDataReceivedListener { data ->
-            processIncomingPayload(data)
+        // 2. Wi-Fi Aware'den gelen verileri Flow üzerinden dinle
+        scope.launch {
+            wifiAwareManager.dataReceivedFlow.collect { data ->
+                processIncomingPayload(data, scope)
+            }
         }
 
         // 3. Wi-Fi Aware Soket Köprüsü Kurulduğunda Bekleyenleri Gönder
-        wifiAwareManager.setOnSocketReadyListener { socket ->
-            CoroutineScope(Dispatchers.IO).launch {
+        scope.launch {
+            wifiAwareManager.socketReadyFlow.collect { socket ->
                 try {
                     val pendingMessages = messageDao.getPendingMessages()
                     val pendingSOS = emergencySignalDao.getPendingSignals()
+                    val pendingBulletins = bulletinDao.getUnsyncedPosts()
                     
-                    if (pendingMessages.isNotEmpty() || pendingSOS.isNotEmpty()) {
-                        val fullPayload = ProtoMapper.packageAll(pendingSOS, pendingMessages)
+                    if (pendingMessages.isNotEmpty() || pendingSOS.isNotEmpty() || pendingBulletins.isNotEmpty()) {
+                        val fullPayload = ProtoMapper.packageAll(
+                            signals = pendingSOS,
+                            messages = pendingMessages,
+                            bulletins = pendingBulletins
+                        )
                         wifiAwareManager.sendDataOverSocket(socket, fullPayload)
-                        
-                        // NOT: Burada markAsSynced ÇAĞIRILMAMALI. 
-                        // is_synced sadece bulut (Firebase) onayı geldiğinde true olmalı.
-                        // Mesh üzerinden gönderim, bulut senkronizasyonu yerine geçmez.
-                        Log.d("YANKI_REPO", "Mesh üzerinden ${pendingMessages.size} mesaj paylaşıldı.")
+                        Log.d("YANKI_REPO", "Mesh üzerinden (Flow/Socket) veri paylaşıldı.")
                     }
                 } catch (e: Exception) {
                     Log.e("YANKI_REPO", "Soket üzerinden veri gönderimi başarısız: ${e.message}")
@@ -274,45 +447,105 @@ class YankiRepository @Inject constructor(
         }
     }
 
-    private fun processIncomingPayload(data: ByteArray) {
-        val parsed = ProtoMapper.parseIncomingPayload(data)
-        parsed?.let { payload ->
-            CoroutineScope(Dispatchers.IO).launch {
-                payload.signals.forEach { signal -> handleEmergencySignal(signal) }
-                payload.messages.forEach { message -> handleIncomingMeshMessage(message) }
+    private fun processIncomingPayload(data: ByteArray, scope: CoroutineScope) {
+        Log.d("YANKI_MESH", "AĞDAN VERİ GELDİ! Boyut: ${data.size} byte")
+        val parsedPayload = ProtoMapper.parseIncomingPayload(data)
+        if (parsedPayload != null) {
+            Log.d("YANKI_MESH", "Paket çözüldü: ${parsedPayload.messages.size} mesaj, ${parsedPayload.users.size} kullanıcı var.")
+            scope.launch(Dispatchers.IO) {
+                try {
+                    database.withTransaction {
+                        // Önce kullanıcı bilgilerini (Public Key) güncelle/kaydet ki mesaj imzaları doğrulanabilsin
+                        parsedPayload.users.forEach { user ->
+                            if (user.user_id != currentUserId) {
+                                val existing = userDao.getUserById(user.user_id)
+                                if (existing == null) {
+                                    userDao.insertOrUpdateUser(user)
+                                } else if (user.last_seen > existing.last_seen) {
+                                    // Sadece daha güncel bir bilgi geldiyse güncelle
+                                    userDao.insertOrUpdateUser(user.copy(
+                                        last_mac = existing.last_mac,
+                                        last_rssi = existing.last_rssi,
+                                        blood_type = existing.blood_type ?: user.blood_type,
+                                        allergies = existing.allergies ?: user.allergies,
+                                        medications = existing.medications ?: user.medications,
+                                        emergency_contact = existing.emergency_contact ?: user.emergency_contact
+                                    ))
+                                }
+                            }
+                        }
+
+                        parsedPayload.signals.forEach { signal -> handleEmergencySignal(signal) }
+                        parsedPayload.messages.forEach { message -> handleIncomingMeshMessage(message) }
+                        parsedPayload.bulletins.forEach { bulletin -> handleIncomingBulletin(bulletin) }
+                    }
+
+                    // Mesh'ten yeni veri geldi, eğer internet varsa hemen buluta gönder
+                    if (parsedPayload.signals.isNotEmpty() || parsedPayload.messages.isNotEmpty() || parsedPayload.bulletins.isNotEmpty()) {
+                        triggerImmediateCloudSync()
+                    }
+                } catch (e: Exception) {
+                    Log.e("YANKI_MESH", "Payload işlenirken hata oluştu: ${e.message}")
+                }
             }
         }
     }
 
-    suspend fun handleNeighborFound(neighborId: String, neighborMacAddress: String) {
-        // Kendi kullanıcımızın veritabanında olduğundan emin olalım (Çökme koruması)
-        ensureLocalUserExists()
-
+    suspend fun handleNeighborFound(neighborId: String, neighborMacAddress: String, rssi: Int) {
         val currentTime = System.currentTimeMillis()
         val existingUser = userDao.getUserById(neighborId)
 
         if (existingUser != null) {
-            userDao.updateLastSeen(userId = neighborId, timestamp = currentTime, macAddress = neighborMacAddress)
+            userDao.updateLastSeen(userId = neighborId, timestamp = currentTime, macAddress = neighborMacAddress, rssi = rssi)
         } else {
             val newUser = UserEntity(
                 user_id = neighborId,
                 username = "Bilinmeyen Komşu",
+                full_name = null,
                 public_key = byteArrayOf(),
                 last_seen = currentTime,
                 last_mac = neighborMacAddress,
+                last_rssi = rssi,
                 is_trusted = false
             )
             userDao.insertOrUpdateUser(newUser)
         }
+        
+        // Kimlik duyurusu (Identity Announcement) yap: Kendi profilimizi yeni bulduğumuz komşuya gönder
+        val myProfile = userDao.getUserById(currentUserId)
+        if (myProfile != null && !neighborMacAddress.isNullOrBlank()) {
+            val identityPayload = ProtoMapper.packageAll(
+                signals = emptyList(),
+                messages = emptyList(),
+                users = listOf(myProfile)
+            )
+            Log.d("YANKI_MESH", "Kimlik duyurusu komşuya ($neighborId) gönderiliyor.")
+            bleMeshManager.sendPayloadToNeighbor(neighborMacAddress, identityPayload)
+        }
+
         triggerGossipProtocol(neighborId, neighborMacAddress)
+    }
+
+    private fun triggerImmediateCloudSync() {
+        try {
+            val syncRequest = androidx.work.OneTimeWorkRequestBuilder<com.bedir.yanki.data.remote.sync.SyncWorker>()
+                .build() 
+            
+            androidx.work.WorkManager.getInstance(context)
+                .enqueueUniqueWork("immediate_sync", androidx.work.ExistingWorkPolicy.REPLACE, syncRequest)
+            Log.d("YANKI_SYNC", "Anlık bulut senkronizasyonu tetiklendi (Kısıtlamasız).")
+        } catch (e: Exception) {
+            Log.e("YANKI_SYNC", "WorkManager tetikleme hatası: ${e.message}")
+        }
     }
 
     private suspend fun triggerGossipProtocol(neighborId: String, neighborMacAddress: String) {
         try {
             val pendingSOS = emergencySignalDao.getPendingSignals()
             val pendingMessages = messageDao.getPendingMessages()
+            val pendingBulletins = bulletinDao.getUnsyncedPosts()
 
-            if (pendingSOS.isEmpty() && pendingMessages.isEmpty()) return
+            if (pendingSOS.isEmpty() && pendingMessages.isEmpty() && pendingBulletins.isEmpty()) return
 
             // Öncelik 1: SOS Sinyalleri (Her zaman BLE ile hızlıca fırlat)
             if (pendingSOS.isNotEmpty() && neighborMacAddress.isNotBlank()) {
@@ -321,22 +554,23 @@ class YankiRepository @Inject constructor(
                 bleMeshManager.sendPayloadToNeighbor(neighborMacAddress, sosPayload)
             }
 
-            // Öncelik 2: Mesaj Paketleme ve BLE Kontrolü
+            // Öncelik 2: Mesaj ve Duyuru Paketleme
             var needsWifiAware = false
-            if (pendingMessages.isNotEmpty()) {
-                val messagePayload = ProtoMapper.packageAll(emptyList(), pendingMessages)
+            if (pendingMessages.isNotEmpty() || pendingBulletins.isNotEmpty()) {
+                val messagePayload = ProtoMapper.packageAll(emptyList(), pendingMessages, emptyList(), pendingBulletins)
                 
-                // Eğer paket BLE sınırları içindeyse (MTU 512) ve MAC biliniyorsa BLE kullan
-                if (messagePayload.size < 500 && neighborMacAddress.isNotBlank()) {
-                    Log.d("YANKI_MESH", "Mesaj paketi BLE üzerinden gönderiliyor: $neighborMacAddress")
+                if (messagePayload.size < 2000 && neighborMacAddress.isNotBlank()) {
+                    Log.d("YANKI_MESH", "Veri paketi BLE üzerinden gönderiliyor: $neighborMacAddress")
                     bleMeshManager.sendPayloadToNeighbor(neighborMacAddress, messagePayload)
+                    
+                    // Not: Burada hemen markAsSynced yapmıyoruz ki diğer komşulara da yayılabilsin.
+                    // Bunun yerine Cloud Sync (SyncWorker) başarılı olduğunda işaretlenecek.
                 } else {
-                    // Paket büyükse veya çok fazla mesaj varsa Wi-Fi Aware şart
                     needsWifiAware = true
                 }
             }
 
-            // Öncelik 3: Wi-Fi Aware (Sadece büyük veriler veya toplu gönderim için)
+            // Öncelik 3: Wi-Fi Aware
             if (needsWifiAware || pendingMessages.size > 5) {
                 Log.d("YANKI_MESH", "Wi-Fi Aware üzerinden yüksek kapasiteli veri trafiği başlatılıyor...")
                 wifiAwareManager.attachToAwareSystem {
@@ -347,5 +581,40 @@ class YankiRepository @Inject constructor(
         } catch (e: Exception) {
             Log.e("YANKI_MESH", "triggerGossipProtocol hatası: ${e.message}")
         }
+    }
+
+    // ==========================================
+    // --- 5. AYARLAR & TERCİHLER ---
+    // ==========================================
+    fun setPreference(key: String, value: Boolean) {
+        sharedPreferences.edit { putBoolean(key, value) }
+    }
+
+    fun getPreference(key: String, defaultValue: Boolean): Boolean {
+        return sharedPreferences.getBoolean(key, defaultValue)
+    }
+
+    fun getSettingsFlow(): Flow<Map<String, Boolean>> = callbackFlow {
+        val listener = android.content.SharedPreferences.OnSharedPreferenceChangeListener { prefs, key ->
+            if (key != null) {
+                launch {
+                    send(getAllSettings())
+                }
+            }
+        }
+        sharedPreferences.registerOnSharedPreferenceChangeListener(listener)
+        send(getAllSettings())
+        awaitClose { sharedPreferences.unregisterOnSharedPreferenceChangeListener(listener) }
+    }
+
+    private fun getAllSettings(): Map<String, Boolean> {
+        return mapOf(
+            "pref_wifi_aware" to sharedPreferences.getBoolean("pref_wifi_aware", true),
+            "pref_ble_mode" to sharedPreferences.getBoolean("pref_ble_mode", true),
+            "pref_trusted_only" to sharedPreferences.getBoolean("pref_trusted_only", false),
+            "pref_sos_notifications" to sharedPreferences.getBoolean("pref_sos_notifications", true),
+            "pref_discovery_notifications" to sharedPreferences.getBoolean("pref_discovery_notifications", false),
+            "pref_aes_gcm" to sharedPreferences.getBoolean("pref_aes_gcm", true)
+        )
     }
 }

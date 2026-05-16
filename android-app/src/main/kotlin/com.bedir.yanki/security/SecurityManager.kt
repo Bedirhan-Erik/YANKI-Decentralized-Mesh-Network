@@ -15,11 +15,16 @@ class SecurityManager @Inject constructor() {
     private fun getSodium(): LazySodiumAndroid? {
         if (sodiumInstance == null) {
             try {
+                // JNA'nın kütüphaneyi bulması için bazen manuel tetikleme gerekebilir
+                System.setProperty("jna.library.path", "")
                 sodiumInstance = LazySodiumAndroid(SodiumAndroid())
-                android.util.Log.d("YANKI_SECURITY", "Sodium başarıyla başlatıldı.")
+                android.util.Log.d("YANKI_SECURITY", "Sodium (LazySodium) başarıyla başlatıldı.")
             } catch (e: Throwable) {
-                android.util.Log.e("YANKI_SECURITY", "Sodium başlatılamadı (Kritik): ${e.message}")
-                if (e is UnsatisfiedLinkError) e.printStackTrace()
+                android.util.Log.e("YANKI_SECURITY", "Sodium başlatılamadı: ${e.message}")
+                // Eğer hala hata veriyorsa, uygulamayı silip yüklemek ve Gradle Sync yapmak şarttır.
+                if (e is UnsatisfiedLinkError) {
+                     android.util.Log.e("YANKI_SECURITY", "KRİTİK: Yerel kütüphane (.so) yüklenemedi. APK'yı silip tekrar yükleyin.")
+                }
             }
         }
         return sodiumInstance
@@ -56,8 +61,16 @@ class SecurityManager @Inject constructor() {
      */
     fun verifySignature(data: ByteArray, signature: ByteArray, publicKey: ByteArray): Boolean {
         return try {
-            val s = getSodium()
-            if (s == null || signature.size != 64 || publicKey.size < 32) return false
+            val s = getSodium() ?: run {
+                android.util.Log.e("YANKI_SECURITY", "Sodium hazır değil, doğrulama yapılamıyor!")
+                return false
+            }
+            
+            if (signature.size != 64 || publicKey.size < 32) {
+                android.util.Log.w("YANKI_SECURITY", "Geçersiz imza veya anahtar boyutu.")
+                return false
+            }
+
             s.cryptoSignVerifyDetached(signature, data, data.size, publicKey)
         } catch (e: Throwable) {
             android.util.Log.e("YANKI_SECURITY", "Doğrulama hatası: ${e.message}")

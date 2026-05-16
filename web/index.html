@@ -338,7 +338,8 @@
 
 <!-- ── NAVİGASYON ── -->
 <nav>
-  <a class="nav-link active" data-target="dashboard">Canlı Veriler</a>
+  <a class="nav-link active" data-target="dashboard">Acil Durum Haritası</a>
+  <a class="nav-link" data-target="bulletins">Duyuru Panosu</a>
   <a class="nav-link" data-target="about">Hakkında</a>
 </nav>
 
@@ -362,16 +363,15 @@
       <div id="map"></div>
     </div>
 
-    <!-- Ana veri tablosu -->
+    <!-- Ana veri tablosu (SOS) -->
     <div class="panel">
       <div class="panel-header">
         <h2>
           <span class="live-dot"></span>
-          Son Acil İletişim Kayıtları
+          Son Acil İletişim Kayıtları (SOS)
         </h2>
         <span class="meta">
-          Son güncelleme: <strong id="last-update">–</strong> &nbsp;|&nbsp;
-          Toplam kayıt: <strong id="record-count">0</strong>
+          Toplam SOS: <strong id="record-count">0</strong>
         </span>
       </div>
 
@@ -397,6 +397,32 @@
     </div>
   </div>
 
+  <!-- ── DUYURU PANOSU GÖRÜNÜMÜ ── -->
+  <div id="view-bulletins" style="display: none;">
+    <div class="panel">
+      <div class="panel-header">
+        <h2>📢 Canlı Duyuru Panosu (Mesh -> Cloud)</h2>
+        <span class="meta">Toplam İlan: <strong id="bulletin-count">0</strong></span>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Zaman</th>
+              <th>Gönderen</th>
+              <th>Tür</th>
+              <th style="text-align:left;">Duyuru İçeriği</th>
+              <th>Konum</th>
+            </tr>
+          </thead>
+          <tbody id="bulletin-tbody">
+            <tr><td colspan="5">Duyurular bekleniyor…</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
   <!-- ── HAKKINDA GÖRÜNÜMÜ ── -->
   <div id="view-about" style="display: none;">
     <div class="panel">
@@ -408,7 +434,7 @@
 
         <h3>Nasıl Çalışır?</h3>
         <ul>
-          <li><strong>İnternetsiz İletişim:</strong> Kullanıcıların cihazları, internet veya operatör şebekesi olmadan Bluetooth ve Wi-Fi Direct teknolojilerini kullanarak birbirine doğrudan bağlanır.</li>
+          <li><strong>İnternetsiz İletişim:</strong> Kullanıcıların cihazları, internet veya operatör şebekesi olmadan Bluetooth ve Wi-Fi Aware teknolojilerini kullanarak birbirine doğrudan bağlanır.</li>
           <li><strong>Ağ Zıplaması (Mesh Hops):</strong> Bir enkaz altından gönderilen SOS sinyali, yakındaki diğer YANKI kullanıcılarının telefonlarından sekerek (hop) ilerler.</li>
           <li><strong>Bulut Senkronizasyonu:</strong> Cihazdan cihaza aktarılan bu sinyal zinciri, güvenli bir bölgede internet bağlantısı olan herhangi bir cihaza ulaştığı an buluta (Firebase) aktarılır.</li>
           <li><strong>Canlı İzleme:</strong> Buluta ulaşan sinyaller, koordinat, pil seviyesi, acil durum tipi ve ağda kaç kere zıpladığı bilgisiyle birlikte eşzamanlı olarak bu panele (Dashboard) düşer.</li>
@@ -424,7 +450,7 @@
 
 <!-- ── DURUM ÇUBUĞU ── -->
 <div id="status-bar">
-  <span>YANKI Mesh Network © 2025 – Afet anında kesintisiz iletişim</span>
+  <span>YANKI Mesh Network © 2026 – Afet anında kesintisiz iletişim</span>
   <span id="conn-status">🔴 Bağlantı bekleniyor…</span>
 </div>
 
@@ -435,7 +461,7 @@
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script type="module">
   import { initializeApp }   from "https://www.gstatic.com/firebasejs/11.7.1/firebase-app.js";
-  import { getFirestore, collection, query, orderBy, limit, onSnapshot, getDocs }
+  import { getFirestore, collection, query, where, orderBy, limit, onSnapshot, getDocs, Timestamp }
     from "https://www.gstatic.com/firebasejs/11.7.1/firebase-firestore.js";
 
   const firebaseConfig = {
@@ -447,14 +473,8 @@
     appId: "1:832552007678:web:319ee97b58adfd2ecbb2af"
   };
 
-  if (firebaseConfig.apiKey === "AIzaSyC979HjSm-h0ac-PZjxQHz--icUMJKuGVM") {
-    document.getElementById("config-warning").style.display = "block";
-    document.getElementById("loading-row").querySelector("td").textContent =
-      "⚠️ Firebase yapılandırması eksik. Lütfen index.html dosyasını düzenleyin.";
-    document.getElementById("conn-status").textContent = "⚠️ Yapılandırma eksik";
-  } else {
-    startApp(firebaseConfig);
-  }
+  startApp(firebaseConfig);
+
 
   function startApp(config) {
     const app = initializeApp(config);
@@ -504,24 +524,31 @@
       return { tarih, saat };
     }
 
-    // Tabloyu ve Haritayı Doldur
+    // Tabloyu ve Haritayı Doldur (SOS)
     function renderTable(docs) {
+      console.log("SOS Verileri Alındı. Sayı:", docs.length);
       const tbody = document.getElementById("data-tbody");
       tbody.innerHTML = "";
       markers.clearLayers();
 
       if (docs.length === 0) {
-        tbody.innerHTML = `<tr id="loading-row"><td colspan="6">Henüz kayıt yok.</td></tr>`;
+        tbody.innerHTML = `<tr id="loading-row"><td colspan="6">Henüz kayıt yok (Son 48 saat boş).</td></tr>`;
         return;
       }
 
       docs.forEach(docSnap => {
         const d = docSnap.data();
-        const user = usersMap[d.user_id] || {};
-        const isimSoyisim = user.user_name || d.user_id || "Bilinmeyen Kullanıcı";
+        // Öncelikle sinyal içindeki user_name alanını kullan, yoksa usersMap'ten bak, o da yoksa ID göster
+        const isimSoyisim = d.user_name || (usersMap[d.user_id] ? usersMap[d.user_id].user_name : d.user_id) || "Bilinmeyen Kullanıcı";
         const { tarih, saat } = formatDate(d.created_at);
-        const lat = d.location?.latitude  != null ? d.location.latitude  : null;
-        const lon = d.location?.longitude != null ? d.location.longitude : null;
+
+        // Lokasyon verisini güvenli al
+        let lat = null, lon = null;
+        if (d.location && typeof d.location.latitude === 'number') {
+          lat = d.location.latitude;
+          lon = d.location.longitude;
+        }
+
         const pil = d.battery_level != null ? `%${d.battery_level}` : "–";
         const hop = d.mesh_hops != null ? d.mesh_hops : "0";
         const durum = durumuBilgisi(d.emergency_type);
@@ -530,14 +557,14 @@
         tr.innerHTML = `
           <td>${tarih}</td>
           <td>${saat}</td>
-          <td>${lat ? lat.toFixed(4) : "–"}, ${lon ? lon.toFixed(4) : "–"}</td>
+          <td>${lat != null ? lat.toFixed(4) : "–"}, ${lon != null ? lon.toFixed(4) : "–"}</td>
           <td class="name-col">${isimSoyisim}</td>
           <td><span class="badge ${durum.cls}">${durum.tr}</span></td>
           <td>🔋 ${pil} | 📡 ${hop} hop</td>
         `;
         tbody.appendChild(tr);
 
-        if (lat && lon) {
+        if (lat != null && lon != null) {
           const marker = L.marker([lat, lon]).addTo(markers);
           marker.bindPopup(`
             <div style="font-size: 13px;">
@@ -552,41 +579,95 @@
         }
       });
 
-      if (docs.length > 0 && docs[0].data().location) {
-          const loc = docs[0].data().location;
-          map.setView([loc.latitude, loc.longitude], 10);
+      if (docs.length > 0) {
+          const first = docs[0].data();
+          if (first.location && first.location.latitude) {
+            map.setView([first.location.latitude, first.location.longitude], 10);
+          }
       }
 
       document.getElementById("record-count").textContent = docs.length;
-      document.getElementById("last-update").textContent = new Date().toLocaleTimeString("tr-TR");
+    }
+
+    // Duyuru Tablosunu Doldur
+    function renderBulletins(docs) {
+      const tbody = document.getElementById("bulletin-tbody");
+      tbody.innerHTML = "";
+
+      if (docs.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="5">Henüz duyuru yok.</td></tr>`;
+        return;
+      }
+
+      docs.forEach(docSnap => {
+        const d = docSnap.data();
+        const { saat } = formatDate(d.cloud_timestamp);
+        const lat = d.location?.latitude;
+        const lon = d.location?.longitude;
+        const konum = (lat != null && lon != null) ? `${lat.toFixed(4)}, ${lon.toFixed(4)}` : "–";
+
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td>${saat}</td>
+          <td><strong>${d.sender_name || "Anonim"}</strong></td>
+          <td><span class="badge ${getBulletinBadgeClass(d.type)}">${d.type || 'INFO'}</span></td>
+          <td style="text-align:left; white-space:normal;">${d.content}</td>
+          <td>${konum}</td>
+        `;
+        tbody.appendChild(tr);
+      });
+      document.getElementById("bulletin-count").textContent = docs.length;
+    }
+
+    function getBulletinBadgeClass(type) {
+        switch(type) {
+            case 'ALERT': return 'badge-FIRE';
+            case 'NEED': return 'badge-INJURED';
+            case 'INFO': return 'badge-HELP';
+            default: return 'badge-default';
+        }
     }
 
     async function init() {
       await loadUsers();
-      const q = query(
+
+      // 48 saat öncesinin zaman damgasını hesapla
+      const fortyEightHoursAgo = Timestamp.fromDate(new Date(Date.now() - 48 * 60 * 60 * 1000));
+
+      // SOS Dinle (Sadece son 48 saat)
+      const qSos = query(
         collection(db, "emergency_signals"),
+        where("created_at", ">=", fortyEightHoursAgo),
         orderBy("created_at", "desc"),
-        limit(100)
+        limit(50)
+      );
+      onSnapshot(qSos,
+        (snap) => renderTable(snap.docs),
+        (err) => console.error("SOS Dinleme Hatası:", err)
       );
 
-      onSnapshot(q,
-        (snapshot) => {
-          renderTable(snapshot.docs);
-          document.getElementById("conn-status").textContent = "🟢 Canlı bağlı";
-        },
-        (err) => {
-          console.error("Firestore hatası:", err);
-          document.getElementById("conn-status").textContent = "🔴 Bağlantı hatası: " + err.message;
-        }
+      // Duyuruları Dinle (Sadece son 48 saat)
+      const qBulletin = query(
+        collection(db, "bulletins"),
+        where("original_timestamp", ">=", fortyEightHoursAgo),
+        orderBy("original_timestamp", "desc"),
+        limit(50)
       );
+      onSnapshot(qBulletin,
+        (snap) => renderBulletins(snap.docs),
+        (err) => console.error("Duyuru Dinleme Hatası:", err)
+      );
+
+      document.getElementById("conn-status").textContent = "🟢 Canlı bağlı";
     }
 
     init();
 
-    // ── SEKME KONTROLÜ (Canlı Veriler / Hakkında) ──
+    // ── SEKME KONTROLÜ (Dashboard / Duyurular / Hakkında) ──
     const navLinks = document.querySelectorAll('.nav-link');
     const viewDashboard = document.getElementById('view-dashboard');
-    const viewAbout = document.getElementById('view-about');
+    const viewBulletins  = document.getElementById('view-bulletins');
+    const viewAbout     = document.getElementById('view-about');
 
     navLinks.forEach(link => {
       link.addEventListener('click', (e) => {
@@ -595,15 +676,12 @@
 
         const target = e.target.getAttribute('data-target');
 
-        if (target === 'dashboard') {
-          viewDashboard.style.display = 'block';
-          viewAbout.style.display = 'none';
+        viewDashboard.style.display = (target === 'dashboard') ? 'block' : 'none';
+        viewBulletins.style.display  = (target === 'bulletins') ? 'block' : 'none';
+        viewAbout.style.display     = (target === 'about') ? 'block' : 'none';
 
-          // Harita tekrar görünür olduğunda Leaflet'in çizimi düzeltmesi için
+        if (target === 'dashboard') {
           setTimeout(() => { map.invalidateSize(); }, 100);
-        } else if (target === 'about') {
-          viewDashboard.style.display = 'none';
-          viewAbout.style.display = 'block';
         }
       });
     });
