@@ -1,9 +1,12 @@
 package com.bedir.yanki.ui.bulletin
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Announcement
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -14,6 +17,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.bedir.yanki.data.local.entity.BulletinEntity
+import com.bedir.yanki.ui.theme.*
 import com.bedir.yanki.ui.viewmodel.MeshViewModel
 import java.text.SimpleDateFormat
 import java.util.*
@@ -31,23 +35,45 @@ fun BulletinBoardScreen(viewModel: MeshViewModel) {
 
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = { Text("Yerel Duyuru Panosu") },
+            CenterAlignedTopAppBar(
+                title = { Text("Duyuru Panosu", color = Color.White, fontWeight = FontWeight.Bold) },
                 actions = {
                     FilterMenu(selectedFilter) { selectedFilter = it }
-                }
+                },
+                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
+                    containerColor = YankiDarkBg
+                )
             )
         },
         floatingActionButton = {
-            FloatingActionButton(onClick = { showPostDialog = true }) {
+            FloatingActionButton(
+                onClick = { showPostDialog = true },
+                containerColor = YankiGreen,
+                contentColor = Color.White
+            ) {
                 Icon(Icons.Default.Add, contentDescription = "Duyuru Paylaş")
             }
-        }
+        },
+        containerColor = YankiDarkBg
     ) { padding ->
-        Column(modifier = Modifier.padding(padding)) {
+        Column(
+            modifier = Modifier
+                .padding(padding)
+                .fillMaxSize()
+                .background(YankiDarkBg)
+        ) {
             if (filteredBulletins.isEmpty()) {
                 Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Text("Henüz duyuru yok", color = Color.Gray)
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.Announcement,
+                            contentDescription = null,
+                            tint = YankiGreyDot,
+                            modifier = Modifier.size(64.dp)
+                        )
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Text("Henüz duyuru yok", color = YankiGreyDot)
+                    }
                 }
             } else {
                 LazyColumn(
@@ -79,47 +105,37 @@ fun FilterMenu(selectedFilter: String, onFilterSelected: (String) -> Unit) {
     var expanded by remember { mutableStateOf(false) }
     Box {
         IconButton(onClick = { expanded = true }) {
-            Icon(Icons.Default.FilterList, contentDescription = "Filtrele")
+            Icon(Icons.Default.FilterList, contentDescription = "Filtrele", tint = Color.White)
         }
-        DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
-            DropdownMenuItem(
-                text = { Text("Hepsi") },
-                onClick = { onFilterSelected("ALL"); expanded = false }
-            )
-            DropdownMenuItem(
-                text = { Text("Bilgi (INFO)") },
-                onClick = { onFilterSelected("INFO"); expanded = false }
-            )
-            DropdownMenuItem(
-                text = { Text("İhtiyaç (NEED)") },
-                onClick = { onFilterSelected("NEED"); expanded = false }
-            )
-            DropdownMenuItem(
-                text = { Text("Uyarı (ALERT)") },
-                onClick = { onFilterSelected("ALERT"); expanded = false }
-            )
+        DropdownMenu(
+            expanded = expanded,
+            onDismissRequest = { expanded = false },
+            modifier = Modifier.background(YankiCardBg)
+        ) {
+            val filters = listOf("ALL" to "Hepsi", "INFO" to "Bilgi", "NEED" to "İhtiyaç", "ALERT" to "Uyarı")
+            filters.forEach { (key, label) ->
+                DropdownMenuItem(
+                    text = { Text(label, color = if (selectedFilter == key) YankiGreen else Color.White) },
+                    onClick = { onFilterSelected(key); expanded = false }
+                )
+            }
         }
     }
 }
 
 @Composable
 fun BulletinItem(bulletin: BulletinEntity) {
-    val cardColor = when (bulletin.type) {
-        "ALERT" -> Color(0xFFFFEBEE)
-        "NEED" -> Color(0xFFE3F2FD)
-        else -> Color.White
-    }
-
-    val typeLabel = when (bulletin.type) {
-        "ALERT" -> "⚠️ UYARI"
-        "NEED" -> "🔍 İHTİYAÇ"
-        else -> "ℹ️ BİLGİ"
+    val typeColor = when (bulletin.type) {
+        "ALERT" -> Color(0xFFE74C3C)
+        "NEED" -> Color(0xFF3498DB)
+        else -> YankiGreen
     }
 
     Card(
         modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = cardColor),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        colors = CardDefaults.cardColors(containerColor = YankiCardBg),
+        shape = RoundedCornerShape(12.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Row(
@@ -130,31 +146,44 @@ fun BulletinItem(bulletin: BulletinEntity) {
                 Text(
                     text = bulletin.sender_name,
                     fontWeight = FontWeight.Bold,
-                    fontSize = 16.sp
+                    fontSize = 16.sp,
+                    color = Color.White
                 )
-                Text(
-                    text = typeLabel,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 12.sp,
-                    color = if (bulletin.type == "ALERT") Color.Red else Color.Blue
-                )
+                Surface(
+                    color = typeColor.copy(alpha = 0.2f),
+                    shape = RoundedCornerShape(4.dp)
+                ) {
+                    Text(
+                        text = bulletin.type,
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 10.sp,
+                        color = typeColor
+                    )
+                }
             }
             Spacer(modifier = Modifier.height(8.dp))
-            Text(text = bulletin.content)
+            Text(text = bulletin.content, color = Color.White.copy(alpha = 0.9f), fontSize = 14.sp)
             Spacer(modifier = Modifier.height(12.dp))
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
             ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(Icons.Default.AccessTime, contentDescription = null, tint = YankiGreyDot, modifier = Modifier.size(14.dp))
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text(
+                        text = formatTimestamp(bulletin.timestamp),
+                        fontSize = 12.sp,
+                        color = YankiGreyDot
+                    )
+                }
                 Text(
-                    text = formatTimestamp(bulletin.timestamp),
+                    text = "${bulletin.ttl} Hop",
                     fontSize = 12.sp,
-                    color = Color.Gray
-                )
-                Text(
-                    text = "Menzil: ${bulletin.ttl} atlama",
-                    fontSize = 12.sp,
-                    color = Color.Gray
+                    color = YankiGreyDot,
+                    fontWeight = FontWeight.Medium
                 )
             }
         }
@@ -169,7 +198,8 @@ fun PostBulletinDialog(onDismiss: () -> Unit, onPost: (String, String) -> Unit) 
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Duyuru Paylaş") },
+        containerColor = YankiCardBg,
+        title = { Text("Yeni Duyuru", color = Color.White) },
         text = {
             Column {
                 OutlinedTextField(
@@ -177,39 +207,51 @@ fun PostBulletinDialog(onDismiss: () -> Unit, onPost: (String, String) -> Unit) 
                     onValueChange = { content = it },
                     label = { Text("Mesajınız") },
                     modifier = Modifier.fillMaxWidth(),
-                    minLines = 3
+                    minLines = 3,
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = YankiGreen,
+                        unfocusedBorderColor = YankiGreyDot,
+                        focusedLabelColor = YankiGreen,
+                        unfocusedLabelColor = YankiGreyDot,
+                        cursorColor = YankiGreen,
+                        focusedTextColor = Color.White,
+                        unfocusedTextColor = Color.White
+                    )
                 )
                 Spacer(modifier = Modifier.height(16.dp))
-                Text("Duyuru Tipi:", fontWeight = FontWeight.SemiBold)
+                Text("Duyuru Tipi:", fontWeight = FontWeight.SemiBold, color = Color.White)
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    RadioButton(selected = selectedType == "INFO", onClick = { selectedType = "INFO" })
-                    Text("Bilgi")
-                    Spacer(modifier = Modifier.width(8.dp))
-                    RadioButton(selected = selectedType == "NEED", onClick = { selectedType = "NEED" })
-                    Text("İhtiyaç")
-                    Spacer(modifier = Modifier.width(8.dp))
-                    RadioButton(selected = selectedType == "ALERT", onClick = { selectedType = "ALERT" })
-                    Text("Uyarı")
+                    val types = listOf("INFO" to "Bilgi", "NEED" to "İhtiyaç", "ALERT" to "Uyarı")
+                    types.forEach { (key, label) ->
+                        RadioButton(
+                            selected = selectedType == key,
+                            onClick = { selectedType = key },
+                            colors = RadioButtonDefaults.colors(selectedColor = YankiGreen, unselectedColor = YankiGreyDot)
+                        )
+                        Text(label, color = Color.White, fontSize = 14.sp)
+                        Spacer(modifier = Modifier.width(4.dp))
+                    }
                 }
             }
         },
         confirmButton = {
             Button(
                 onClick = { if (content.isNotBlank()) onPost(content, selectedType) },
-                enabled = content.isNotBlank()
+                enabled = content.isNotBlank(),
+                colors = ButtonDefaults.buttonColors(containerColor = YankiGreen)
             ) {
-                Text("Paylaş")
+                Text("Yayınla")
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text("İptal")
+                Text("İptal", color = YankiGreyDot)
             }
         }
     )
 }
 
 fun formatTimestamp(timestamp: Long): String {
-    val sdf = SimpleDateFormat("HH:mm, dd.MM.yyyy", Locale.getDefault())
+    val sdf = SimpleDateFormat("HH:mm", Locale.getDefault())
     return sdf.format(Date(timestamp))
 }

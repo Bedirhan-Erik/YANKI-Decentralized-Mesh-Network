@@ -18,14 +18,18 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
+import androidx.hilt.navigation.compose.hiltViewModel
 import com.bedir.yanki.ui.navigation.Screen
 import com.bedir.yanki.ui.theme.YankiCardBg
 import com.bedir.yanki.ui.theme.YankiDarkBg
 import com.bedir.yanki.ui.theme.YankiGreen
+import com.bedir.yanki.ui.viewmodel.registration.RegistrationViewModel
 
 @Composable
-fun RegisterStep2Screen(navController: NavController) {
-    var bloodType by remember { mutableStateOf("") }
+fun RegisterStep2Screen(
+    navController: NavController,
+    viewModel: RegistrationViewModel = hiltViewModel()
+) {
     val bloodTypes = listOf("A+", "A-", "B+", "B-", "AB+", "AB-", "0+", "0-")
 
     Column(
@@ -70,7 +74,7 @@ fun RegisterStep2Screen(navController: NavController) {
             modifier = Modifier.height(110.dp)
         ) {
             items(bloodTypes) { type ->
-                val isSelected = bloodType == type
+                val isSelected = viewModel.bloodType == type
                 Box(
                     modifier = Modifier
                         .height(50.dp)
@@ -78,7 +82,7 @@ fun RegisterStep2Screen(navController: NavController) {
                             if (isSelected) YankiGreen else YankiCardBg,
                             RoundedCornerShape(8.dp)
                         )
-                        .clickable { bloodType = type },
+                        .clickable { viewModel.bloodType = type },
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
@@ -93,8 +97,8 @@ fun RegisterStep2Screen(navController: NavController) {
         Spacer(modifier = Modifier.height(24.dp))
 
         OutlinedTextField(
-            value = "",
-            onValueChange = {},
+            value = viewModel.allergies,
+            onValueChange = { viewModel.allergies = it },
             label = { Text("Alerjiler (Opsiyonel)") },
             modifier = Modifier.fillMaxWidth(),
             colors = OutlinedTextFieldDefaults.colors(
@@ -110,8 +114,8 @@ fun RegisterStep2Screen(navController: NavController) {
         Spacer(modifier = Modifier.height(16.dp))
 
         OutlinedTextField(
-            value = "",
-            onValueChange = {},
+            value = viewModel.medications,
+            onValueChange = { viewModel.medications = it },
             label = { Text("Düzenli İlaçlar (Opsiyonel)") },
             modifier = Modifier.fillMaxWidth(),
             colors = OutlinedTextFieldDefaults.colors(
@@ -138,11 +142,11 @@ fun RegisterStep2Screen(navController: NavController) {
 
             Button(
                 onClick = { 
-                    // TODO: Step 3'e geç
+                    navController.navigate(Screen.RegisterStep3.route)
                 },
                 modifier = Modifier.weight(2f).height(56.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = YankiGreen),
-                enabled = bloodType.isNotEmpty()
+                enabled = viewModel.bloodType.isNotEmpty()
             ) {
                 Text(text = "Sonraki", color = YankiDarkBg, fontWeight = FontWeight.Bold)
             }

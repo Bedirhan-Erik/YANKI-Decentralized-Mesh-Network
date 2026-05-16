@@ -61,20 +61,20 @@ class SecurityManager @Inject constructor() {
      */
     fun verifySignature(data: ByteArray, signature: ByteArray, publicKey: ByteArray): Boolean {
         return try {
-            val s = getSodium()
-            if (s == null) {
-                // KRİTİK: Eğer Sodium başlatılamadıysa, geliştirme aşamasında mesaj akışını 
-                // bozmamak için geçici olarak 'true' dönüyoruz. 
-                // Üretim aşamasında bu kısım 'false' olmalıdır.
-                android.util.Log.w("YANKI_SECURITY", "Sodium hazır değil, doğrulama atlanıyor!")
-                return true 
+            val s = getSodium() ?: run {
+                android.util.Log.e("YANKI_SECURITY", "Sodium hazır değil, doğrulama yapılamıyor!")
+                return false
             }
-            if (signature.size != 64 || publicKey.size < 32) return false
+            
+            if (signature.size != 64 || publicKey.size < 32) {
+                android.util.Log.w("YANKI_SECURITY", "Geçersiz imza veya anahtar boyutu.")
+                return false
+            }
+
             s.cryptoSignVerifyDetached(signature, data, data.size, publicKey)
         } catch (e: Throwable) {
             android.util.Log.e("YANKI_SECURITY", "Doğrulama hatası: ${e.message}")
-            // Hata durumunda veri kaybını önlemek için güvenli varsayılan
-            true
+            false
         }
     }
 }

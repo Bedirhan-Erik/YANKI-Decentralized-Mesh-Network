@@ -13,25 +13,17 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
-import com.bedir.yanki.data.local.entity.UserEntity
 import com.bedir.yanki.ui.navigation.Screen
 import com.bedir.yanki.ui.theme.YankiDarkBg
 import com.bedir.yanki.ui.theme.YankiGreen
-import com.bedir.yanki.ui.viewmodel.MeshViewModel
+import com.bedir.yanki.ui.viewmodel.registration.RegistrationViewModel
 import kotlinx.coroutines.launch
-import java.util.*
 
 @Composable
 fun RegisterStep3Screen(
     navController: NavController,
-    fullName: String,
-    username: String,
-    bloodType: String,
-    allergies: String,
-    medications: String,
-    viewModel: MeshViewModel = hiltViewModel()
+    viewModel: RegistrationViewModel = hiltViewModel()
 ) {
-    var emergencyContact by remember { mutableStateOf("") }
     val scope = rememberCoroutineScope()
 
     Column(
@@ -57,8 +49,8 @@ fun RegisterStep3Screen(
         Spacer(modifier = Modifier.height(32.dp))
 
         OutlinedTextField(
-            value = emergencyContact,
-            onValueChange = { emergencyContact = it },
+            value = viewModel.emergencyContact,
+            onValueChange = { viewModel.emergencyContact = it },
             label = { Text("Acil Durum Yakını (Telefon)") },
             modifier = Modifier.fillMaxWidth(),
             leadingIcon = { Icon(Icons.Default.Call, contentDescription = null, tint = YankiGreen) },
@@ -83,34 +75,33 @@ fun RegisterStep3Screen(
 
         Spacer(modifier = Modifier.weight(1f))
 
-        Button(
-            onClick = {
-                scope.launch {
-                    val newUser = UserEntity(
-                        user_id = UUID.randomUUID().toString(),
-                        username = username,
-                        full_name = fullName,
-                        public_key = byteArrayOf(), // Repository içinde otomatik oluşturuluyor
-                        last_seen = System.currentTimeMillis(),
-                        is_trusted = true,
-                        blood_type = bloodType,
-                        allergies = allergies,
-                        medications = medications,
-                        emergency_contact = emergencyContact
-                    )
-                    viewModel.repository.saveUser(newUser)
-                    navController.navigate(Screen.Home.route) {
-                        popUpTo(Screen.Welcome.route) { inclusive = true }
+        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            OutlinedButton(
+                onClick = { navController.popBackStack() },
+                modifier = Modifier.weight(1f).height(56.dp),
+                border = androidx.compose.foundation.BorderStroke(1.dp, YankiGreen),
+                shape = MaterialTheme.shapes.medium
+            ) {
+                Text(text = "Geri", color = YankiGreen)
+            }
+
+            Button(
+                onClick = {
+                    scope.launch {
+                        viewModel.completeRegistration()
+                        navController.navigate(Screen.RegisterSuccess.route) {
+                            popUpTo(Screen.Welcome.route) { inclusive = true }
+                        }
                     }
-                }
-            },
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(56.dp),
-            colors = ButtonDefaults.buttonColors(containerColor = YankiGreen),
-            enabled = emergencyContact.length >= 10
-        ) {
-            Text(text = "Kaydı Tamamla", color = YankiDarkBg, fontWeight = FontWeight.Bold)
+                },
+                modifier = Modifier
+                    .weight(2f)
+                    .height(56.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = YankiGreen),
+                enabled = viewModel.emergencyContact.length >= 10
+            ) {
+                Text(text = "Kaydı Tamamla", color = YankiDarkBg, fontWeight = FontWeight.Bold)
+            }
         }
     }
 }

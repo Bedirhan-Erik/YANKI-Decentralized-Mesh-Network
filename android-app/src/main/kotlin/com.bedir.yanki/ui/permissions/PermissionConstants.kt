@@ -15,9 +15,10 @@ object PermissionConstants {
             add(Manifest.permission.BLUETOOTH_ADVERTISE)
             add(Manifest.permission.BLUETOOTH_CONNECT)
         }
-        // Android 13 (API 33) ve üzeri için Wi-Fi Aware izni
+        // Android 13 (API 33) ve üzeri için Wi-Fi Aware ve Bildirim izinleri
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             add(Manifest.permission.NEARBY_WIFI_DEVICES)
+            add(Manifest.permission.POST_NOTIFICATIONS)
         }
     }.toTypedArray()
 }

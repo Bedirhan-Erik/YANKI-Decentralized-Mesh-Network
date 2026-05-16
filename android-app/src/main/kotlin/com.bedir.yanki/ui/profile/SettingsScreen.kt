@@ -19,27 +19,37 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
+import androidx.hilt.navigation.compose.hiltViewModel
+import com.bedir.yanki.ui.theme.*
+import com.bedir.yanki.ui.viewmodel.MeshViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun SettingsScreen(navController: NavController) {
+fun SettingsScreen(
+    navController: NavController,
+    viewModel: MeshViewModel = hiltViewModel()
+) {
+    val settings by viewModel.settings.collectAsState()
+
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Ayarlar", fontWeight = FontWeight.Bold) },
+                title = { Text("Ayarlar", fontWeight = FontWeight.Bold, color = Color.White) },
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Geri")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Geri", tint = Color.White)
                     }
                 },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color(0xFFF8F9FA))
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = YankiDarkBg)
             )
         },
-        containerColor = Color(0xFFF8F9FA)
+        containerColor = YankiDarkBg
     ) { padding ->
         Column(
             modifier = Modifier
                 .padding(padding)
+                .fillMaxSize()
+                .background(YankiDarkBg)
                 .padding(16.dp)
                 .verticalScroll(rememberScrollState())
         ) {
@@ -48,7 +58,9 @@ fun SettingsScreen(navController: NavController) {
                     icon = Icons.Default.Lock,
                     title = "Android Keystore",
                     subtitle = "Donanım güvenlik modülü",
-                    initialValue = true,
+                    checked = true, 
+                    onCheckedChange = {},
+                    enabled = false,
                     showBadge = true,
                     badgeText = "Aktif"
                 )
@@ -56,7 +68,8 @@ fun SettingsScreen(navController: NavController) {
                     icon = Icons.Default.Settings,
                     title = "AES-GCM Şifreleme",
                     subtitle = "Google Tink",
-                    initialValue = false
+                    checked = settings["pref_aes_gcm"] ?: true,
+                    onCheckedChange = { viewModel.updateSetting("pref_aes_gcm", it) }
                 )
                 SettingsClickItem(
                     icon = Icons.Default.Edit,
@@ -69,22 +82,25 @@ fun SettingsScreen(navController: NavController) {
 
             SettingsSection(title = "AĞ TERCİHLERİ") {
                 SettingsSwitchItem(
-                    icon = Icons.Default.Wifi,
+                    icon = Icons.Default.Share,
                     title = "Wi-Fi Aware (NAN)",
                     subtitle = "Yüksek hızlı bağlantı",
-                    initialValue = true
+                    checked = settings["pref_wifi_aware"] ?: true,
+                    onCheckedChange = { viewModel.updateSetting("pref_wifi_aware", it) }
                 )
                 SettingsSwitchItem(
                     icon = Icons.Default.Share,
                     title = "BLE Modu",
                     subtitle = "Düşük enerji keşif",
-                    initialValue = true
+                    checked = settings["pref_ble_mode"] ?: true,
+                    onCheckedChange = { viewModel.updateSetting("pref_ble_mode", it) }
                 )
                 SettingsSwitchItem(
                     icon = Icons.Default.CheckCircle,
                     title = "Güvenilir cihaz modu",
                     subtitle = "Yalnızca is_trusted kişiler",
-                    initialValue = false
+                    checked = settings["pref_trusted_only"] ?: false,
+                    onCheckedChange = { viewModel.updateSetting("pref_trusted_only", it) }
                 )
             }
 
@@ -95,13 +111,15 @@ fun SettingsScreen(navController: NavController) {
                     icon = Icons.Default.Notifications,
                     title = "Acil sinyal uyarıları",
                     subtitle = "Yeni SOS geldiğinde",
-                    initialValue = true
+                    checked = settings["pref_sos_notifications"] ?: true,
+                    onCheckedChange = { viewModel.updateSetting("pref_sos_notifications", it) }
                 )
                 SettingsSwitchItem(
                     icon = Icons.Default.LocationOn,
                     title = "Yeni cihaz keşfi",
                     subtitle = "Mesh'e yeni katılan",
-                    initialValue = false
+                    checked = settings["pref_discovery_notifications"] ?: false,
+                    onCheckedChange = { viewModel.updateSetting("pref_discovery_notifications", it) }
                 )
             }
         }
@@ -113,13 +131,13 @@ fun SettingsSection(title: String, content: @Composable ColumnScope.() -> Unit) 
     Column {
         Text(
             text = title,
-            color = Color.Gray,
+            color = YankiGreyDot,
             fontSize = 12.sp,
             fontWeight = FontWeight.Bold,
             modifier = Modifier.padding(start = 8.dp, bottom = 8.dp)
         )
         Card(
-            colors = CardDefaults.cardColors(containerColor = Color.White),
+            colors = CardDefaults.cardColors(containerColor = YankiCardBg),
             shape = RoundedCornerShape(24.dp),
             modifier = Modifier.fillMaxWidth(),
             elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
@@ -136,12 +154,12 @@ fun SettingsSwitchItem(
     icon: ImageVector,
     title: String,
     subtitle: String,
-    initialValue: Boolean,
+    checked: Boolean,
+    onCheckedChange: (Boolean) -> Unit,
+    enabled: Boolean = true,
     showBadge: Boolean = false,
     badgeText: String = ""
 ) {
-    var checked by remember { mutableStateOf(initialValue) }
-    
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -151,26 +169,26 @@ fun SettingsSwitchItem(
         Box(
             modifier = Modifier
                 .size(40.dp)
-                .background(Color(0xFF111721), RoundedCornerShape(12.dp)),
+                .background(YankiDarkBg, RoundedCornerShape(12.dp)),
             contentAlignment = Alignment.Center
         ) {
-            Icon(imageVector = icon, contentDescription = null, tint = Color.White, modifier = Modifier.size(20.dp))
+            Icon(imageVector = icon, contentDescription = null, tint = YankiGreen, modifier = Modifier.size(20.dp))
         }
 
         Spacer(modifier = Modifier.width(16.dp))
 
         Column(modifier = Modifier.weight(1f)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(text = title, fontWeight = FontWeight.Bold, color = Color.Black)
+                Text(text = title, fontWeight = FontWeight.Bold, color = Color.White)
                 if (showBadge) {
                     Spacer(modifier = Modifier.width(8.dp))
                     Surface(
-                        color = Color(0xFF2ECC71).copy(alpha = 0.2f),
+                        color = YankiGreen.copy(alpha = 0.2f),
                         shape = RoundedCornerShape(8.dp)
                     ) {
                         Text(
                             text = badgeText,
-                            color = Color(0xFF2ECC71),
+                            color = YankiGreen,
                             fontSize = 10.sp,
                             fontWeight = FontWeight.Bold,
                             modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
@@ -178,17 +196,18 @@ fun SettingsSwitchItem(
                     }
                 }
             }
-            Text(text = subtitle, color = Color.Gray, fontSize = 12.sp)
+            Text(text = subtitle, color = YankiGreyDot, fontSize = 12.sp)
         }
 
         Switch(
             checked = checked,
-            onCheckedChange = { checked = it },
+            onCheckedChange = onCheckedChange,
+            enabled = enabled,
             colors = SwitchDefaults.colors(
                 checkedThumbColor = Color.White,
-                checkedTrackColor = Color(0xFF2ECC71),
+                checkedTrackColor = YankiGreen,
                 uncheckedThumbColor = Color.White,
-                uncheckedTrackColor = Color.LightGray,
+                uncheckedTrackColor = YankiGreyDot,
                 uncheckedBorderColor = Color.Transparent
             )
         )
@@ -210,23 +229,23 @@ fun SettingsClickItem(
         Box(
             modifier = Modifier
                 .size(40.dp)
-                .background(Color(0xFF111721).copy(alpha = 0.1f), RoundedCornerShape(12.dp)),
+                .background(YankiDarkBg, RoundedCornerShape(12.dp)),
             contentAlignment = Alignment.Center
         ) {
-            Icon(imageVector = icon, contentDescription = null, tint = Color(0xFF111721), modifier = Modifier.size(20.dp))
+            Icon(imageVector = icon, contentDescription = null, tint = YankiGreen, modifier = Modifier.size(20.dp))
         }
 
         Spacer(modifier = Modifier.width(16.dp))
 
         Column(modifier = Modifier.weight(1f)) {
-            Text(text = title, fontWeight = FontWeight.Bold, color = Color.Black)
-            Text(text = subtitle, color = Color.Gray, fontSize = 12.sp)
+            Text(text = title, fontWeight = FontWeight.Bold, color = Color.White)
+            Text(text = subtitle, color = YankiGreyDot, fontSize = 12.sp)
         }
 
         Icon(
             imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
             contentDescription = null,
-            tint = Color.LightGray
+            tint = YankiGreyDot
         )
     }
 }

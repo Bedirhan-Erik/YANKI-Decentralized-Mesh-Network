@@ -11,6 +11,12 @@ import android.os.ParcelUuid
 import android.util.Log
 import androidx.core.content.ContextCompat
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharedFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asSharedFlow
+import kotlinx.coroutines.flow.asStateFlow
 import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
 import javax.inject.Inject
@@ -23,15 +29,27 @@ class BleMeshManager @Inject constructor(
     private val bluetoothAdapter: BluetoothAdapter?
 ) {
     companion object {
-        val YANKI_SERVICE_UUID: UUID = UUID.fromString("0000180D-0000-1000-8000-00805f9b34fb")
-        val YANKI_CHARACTERISTIC_UUID: UUID = UUID.fromString("00002A37-0000-1000-8000-00805f9b34fb")
+        // Standart dışı, özel 128-bit UUID'ler (Çakışmayı ve boyut hatalarını önler)
+        val YANKI_SERVICE_UUID: UUID = UUID.fromString("a1b2c3d4-e5f6-7a8b-9c0d-e1f2a3b4c5d6")
+        val YANKI_CHARACTERISTIC_UUID: UUID = UUID.fromString("f1e2d3c4-b5a6-9788-7654-3210fedcba98")
     }
 
     private val scanner get() = bluetoothAdapter?.bluetoothLeScanner
     private val advertiser get() = bluetoothAdapter?.bluetoothLeAdvertiser
     private var scanCallback: ScanCallback? = null
     private var gattServer: BluetoothGattServer? = null
-    private var onDataReceived: ((ByteArray) -> Unit)? = null
+
+    private val _dataReceivedFlow = MutableSharedFlow<ByteArray>(extraBufferCapacity = 64)
+    val dataReceivedFlow: SharedFlow<ByteArray> = _dataReceivedFlow.asSharedFlow()
+
+    private val _isScanning = MutableStateFlow(false)
+    val isScanning: StateFlow<Boolean> = _isScanning.asStateFlow()
+
+    private val _isAdvertising = MutableStateFlow(false)
+    val isAdvertising: StateFlow<Boolean> = _isAdvertising.asStateFlow()
+
+    private val _isGattServerRunning = MutableStateFlow(false)
+    val isGattServerRunning: StateFlow<Boolean> = _isGattServerRunning.asStateFlow()
 
     // --- Parçalama (Chunking) Yapısı ---
     private var messageIdCounter = 0
@@ -56,7 +74,7 @@ class BleMeshManager @Inject constructor(
     }
 
     fun setOnDataReceivedListener(listener: (ByteArray) -> Unit) {
-        onDataReceived = listener
+        // Redundant with dataReceivedFlow, but kept for compatibility if needed
     }
 
     // Aynı komşuyu sürekli işlememek için throttle listesi (MAC -> Son Görülme Zamanı)
@@ -73,10 +91,6 @@ class BleMeshManager @Inject constructor(
         }
     }
 
-    private var isScanning = false
-    private var isAdvertising = false
-    private var isGattServerRunning = false
-
     @SuppressLint("MissingPermission")
     fun startAdvertising(myUserId: String) {
         if (!hasBluetoothPermission() || advertiser == null) {
@@ -84,30 +98,31 @@ class BleMeshManager @Inject constructor(
             return
         }
 
-        if (isAdvertising) {
+        if (_isAdvertising.value) {
             Log.d("YANKI_BLE", "Yayın zaten aktif, tekrar başlatılmıyor.")
             return
         }
 
         val settings = AdvertiseSettings.Builder()
-            .setAdvertiseMode(AdvertiseSettings.ADVERTISE_MODE_LOW_POWER)
-            .setConnectable(true) // GATT bağlantısı (GattServer) için true olmalı
+            .setAdvertiseMode(AdvertiseSettings.ADVERTISE_MODE_LOW_LATENCY) // Hız için
+            .setConnectable(true)
             .setTimeout(0)
             .build()
-
+        
+        // ANA PAKET: Sadece 128-bit UUID (16 byte + 2 byte header = 18 byte)
         val data = AdvertiseData.Builder()
             .addServiceUuid(ParcelUuid(YANKI_SERVICE_UUID))
-            .setIncludeDeviceName(false)
             .build()
 
-        // User ID'yi ScanResponse (ikincil paket) içine koyarsak ana pakette yer açılır
+        // TARAMA YANITI: Sadece 4 karakterlik kısa ID
+        val discoveryId = if (myUserId.length > 4) myUserId.substring(0, 4) else myUserId
         val scanResponse = AdvertiseData.Builder()
-            .addServiceData(ParcelUuid(YANKI_SERVICE_UUID), myUserId.toByteArray())
+            .addServiceData(ParcelUuid(YANKI_SERVICE_UUID), discoveryId.toByteArray())
             .build()
 
         try {
             advertiser?.startAdvertising(settings, data, scanResponse, advertiseCallback)
-            isAdvertising = true
+            _isAdvertising.value = true
         } catch (e: Exception) {
             Log.e("YANKI_BLE", "Yayın başlatılırken hata oluştu", e)
         }
@@ -120,7 +135,7 @@ class BleMeshManager @Inject constructor(
             return
         }
 
-        if (isScanning) {
+        if (_isScanning.value) {
             Log.d("YANKI_BLE", "Tarama zaten aktif.")
             return
         }
@@ -130,7 +145,9 @@ class BleMeshManager @Inject constructor(
             .build()
 
         val settings = ScanSettings.Builder()
-            .setScanMode(ScanSettings.SCAN_MODE_LOW_POWER)
+            .setScanMode(ScanSettings.SCAN_MODE_LOW_LATENCY)
+            .setCallbackType(ScanSettings.CALLBACK_TYPE_ALL_MATCHES)
+            .setMatchMode(ScanSettings.MATCH_MODE_AGGRESSIVE)
             .build()
 
         scanCallback = object : ScanCallback() {
@@ -169,12 +186,12 @@ class BleMeshManager @Inject constructor(
 
             override fun onScanFailed(errorCode: Int) {
                 Log.e("YANKI_MESH", "Tarama Hatası: $errorCode")
-                isScanning = false
+                _isScanning.value = false
             }
         }
 
         scanner?.startScan(listOf(filter), settings, scanCallback)
-        isScanning = true
+        _isScanning.value = true
     }
 
     // 3. GATT SERVER: Posta Kutusunu Aç (Veri Almak İçin)
@@ -185,7 +202,7 @@ class BleMeshManager @Inject constructor(
             return
         }
 
-        if (isGattServerRunning) {
+        if (_isGattServerRunning.value) {
             Log.d("YANKI_BLE", "GATT Server zaten aktif.")
             return
         }
@@ -202,7 +219,7 @@ class BleMeshManager @Inject constructor(
         service.addCharacteristic(characteristic)
 
         gattServer?.addService(service)
-        isGattServerRunning = true
+        _isGattServerRunning.value = true
         Log.d("YANKI_BLE", "GATT Server (Posta Kutusu) açıldı.")
     }
 
@@ -335,11 +352,11 @@ class BleMeshManager @Inject constructor(
     private val advertiseCallback = object : AdvertiseCallback() {
         override fun onStartSuccess(settingsInEffect: AdvertiseSettings) {
             Log.d("YANKI_MESH", "BLE Yayını Başarıyla Başlatıldı.")
-            isAdvertising = true
+            _isAdvertising.value = true
         }
         override fun onStartFailure(errorCode: Int) {
             Log.e("YANKI_MESH", "Yayın Hatası: $errorCode")
-            isAdvertising = false
+            _isAdvertising.value = false
         }
     }
 
@@ -372,12 +389,12 @@ class BleMeshManager @Inject constructor(
                         Log.d("YANKI_BLE", "Tüm parçalar birleşti, paket işleniyor...")
                         val fullData = reassembler.getFullData()
                         reassemblers.remove(key)
-                        onDataReceived?.invoke(fullData)
+                        _dataReceivedFlow.tryEmit(fullData)
                     }
                 } else {
                     // Normal paket
                     Log.d("YANKI_BLE", "${device.address} cihazından tekil veri geldi.")
-                    onDataReceived?.invoke(value)
+                    _dataReceivedFlow.tryEmit(value)
                 }
 
                 if (responseNeeded) {
@@ -393,7 +410,7 @@ class BleMeshManager @Inject constructor(
         scanCallback?.let {
             scanner?.stopScan(it)
             scanCallback = null
-            isScanning = false
+            _isScanning.value = false
         }
     }
 
@@ -409,8 +426,8 @@ class BleMeshManager @Inject constructor(
             gattServer?.close()
         }
         gattServer = null
-        isAdvertising = false
-        isGattServerRunning = false
+        _isAdvertising.value = false
+        _isGattServerRunning.value = false
         Log.d("YANKI_MESH", "BLE Mesh Durduruldu.")
     }
 }

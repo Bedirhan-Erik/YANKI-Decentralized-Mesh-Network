@@ -19,6 +19,7 @@ class MeshService : Service() {
     @Inject lateinit var repository: YankiRepository
 
     private val serviceScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
+    private var settingsJob: Job? = null
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         createNotificationChannel()
@@ -26,11 +27,10 @@ class MeshService : Service() {
         val notification = NotificationCompat.Builder(this, "YANKI_MESH_CHANNEL")
             .setContentTitle("YANKI Aktif")
             .setContentText("Çevrimdışı ağ taraması ve veri aktarımı devam ediyor...")
-            .setSmallIcon(android.R.drawable.stat_notify_sync) // Geçici ikon
+            .setSmallIcon(android.R.drawable.stat_notify_sync) 
             .setOngoing(true)
             .build()
 
-        // Servisi "Foreground" olarak başlat (Android 14+ için tip belirtmek gerekebilir)
         if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q) {
             startForeground(
                 1,
@@ -41,28 +41,51 @@ class MeshService : Service() {
             startForeground(1, notification)
         }
 
-        // MESH MOTORUNU ÇALIŞTIR
-        startMeshEngine()
+        // Ayarları dinle ve motoru dinamik olarak yönet
+        observeSettings()
 
-        return START_STICKY // Sistem servisi kapatırsa otomatik yeniden başlatır
+        return START_STICKY
+    }
+
+    private fun observeSettings() {
+        settingsJob?.cancel()
+        settingsJob = serviceScope.launch {
+            repository.getSettingsFlow().collect { settings ->
+                val bleEnabled = settings["pref_ble_mode"] ?: true
+                val wifiEnabled = settings["pref_wifi_aware"] ?: true
+
+                // BLE Yönetimi
+                if (bleEnabled) {
+                    if (!bleMeshManager.isScanning.value && !bleMeshManager.isAdvertising.value) {
+                        startMeshEngine()
+                    }
+                } else {
+                    bleMeshManager.stopMesh()
+                }
+
+                // Wi-Fi Aware Yönetimi
+                if (wifiEnabled) {
+                    repository.wifiAwareManager.attachToAwareSystem {
+                        repository.wifiAwareManager.startPublishing()
+                        repository.wifiAwareManager.startSubscribing()
+                    }
+                } else {
+                    repository.wifiAwareManager.stopAware()
+                }
+            }
+        }
     }
 
     private fun startMeshEngine() {
-        // 0. Payload dinlemeyi başlat
-        repository.startListeningForMeshPayloads()
+        repository.startListeningForMeshPayloads(serviceScope)
 
-        // 1. BLE Taramasını Başlat
         bleMeshManager.startScanning { neighborId, address, rssi ->
             serviceScope.launch {
-                // Komşuyu bulduğunda Repository'deki trafik polisini tetikle
                 repository.handleNeighborFound(neighborId, address, rssi)
             }
         }
 
-        // 2. BLE Yayınını Başlat (Repository'den gelen gerçek ID'yi kullan)
         bleMeshManager.startAdvertising(repository.currentUserId)
-
-        // 3. GATT Server'ı başlat (Posta kutusunu aç)
         bleMeshManager.startGattServer()
     }
 

@@ -1,34 +1,37 @@
-package com.bedir.yanki.ui.components
+package com.bedir.yanki.ui.navigation
 
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
+import androidx.navigation.NavDestination.Companion.hierarchy
+import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.compose.currentBackStackEntryAsState
-import com.bedir.yanki.ui.navigation.Screen
-import com.bedir.yanki.ui.navigation.bottomNavItems
 import com.bedir.yanki.ui.theme.*
 
 @Composable
 fun YankiBottomBar(navController: NavController) {
     val navBackStackEntry by navController.currentBackStackEntryAsState()
-    val currentRoute = navBackStackEntry?.destination?.route
+    val currentDestination = navBackStackEntry?.destination
 
     NavigationBar(
-        containerColor = YankiDarkBg, // Tasarımdaki koyu arka plan
+        containerColor = YankiDarkBg,
         tonalElevation = 8.dp
     ) {
         bottomNavItems.forEach { screen ->
-            val isSelected = currentRoute == screen.route
+            // Hiyerarşi kontrolü: Alt sayfaların hangi sekmeye ait olduğunu anlar (örn: Mesaj detayı -> Mesajlar sekmesi seçili kalır)
+            val isSelected = currentDestination?.hierarchy?.any { it.route == screen.route } == true
 
             NavigationBarItem(
                 selected = isSelected,
                 onClick = {
-                    if (currentRoute != screen.route) {
+                    if (!isSelected) {
                         navController.navigate(screen.route) {
-                            // Menü geçişlerinde stack birikmesini önler
-                            popUpTo(navController.graph.startDestinationId) { saveState = true }
+                            // Ana hedefe dönerken stack temizliği yapar
+                            popUpTo(navController.graph.findStartDestination().id) {
+                                saveState = true
+                            }
                             launchSingleTop = true
                             restoreState = true
                         }
@@ -49,7 +52,7 @@ fun YankiBottomBar(navController: NavController) {
                     )
                 },
                 colors = NavigationBarItemDefaults.colors(
-                    indicatorColor = YankiCardBg // Seçili ikonun arkasındaki hafif parlayan yuvarlak
+                    indicatorColor = YankiCardBg.copy(alpha = 0.5f)
                 )
             )
         }

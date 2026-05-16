@@ -14,15 +14,18 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
+import androidx.hilt.navigation.compose.hiltViewModel
 import com.bedir.yanki.ui.navigation.Screen
 import com.bedir.yanki.ui.theme.YankiCardBg
 import com.bedir.yanki.ui.theme.YankiDarkBg
 import com.bedir.yanki.ui.theme.YankiGreen
+import com.bedir.yanki.ui.viewmodel.registration.RegistrationViewModel
 
 @Composable
-fun RegisterStep1Screen(navController: NavController) {
-    var fullName by remember { mutableStateOf("") }
-    var username by remember { mutableStateOf("") }
+fun RegisterStep1Screen(
+    navController: NavController,
+    viewModel: RegistrationViewModel = hiltViewModel()
+) {
 
     Column(
         modifier = Modifier
@@ -49,26 +52,9 @@ fun RegisterStep1Screen(navController: NavController) {
 
         // Input Alanları
         OutlinedTextField(
-            value = fullName,
-            onValueChange = { fullName = it },
+            value = viewModel.fullName,
+            onValueChange = { viewModel.fullName = it },
             label = { Text("Ad Soyad") },
-            modifier = Modifier.fillMaxWidth(),
-            colors = OutlinedTextFieldDefaults.colors(
-                unfocusedTextColor = Color.White,
-                focusedTextColor = Color.White,
-                unfocusedBorderColor = Color.Gray,
-                focusedBorderColor = YankiGreen,
-                unfocusedLabelColor = Color.Gray,
-                focusedLabelColor = YankiGreen
-            )
-        )
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        OutlinedTextField(
-            value = username,
-            onValueChange = { username = it },
-            label = { Text("Kullanıcı Adı (Takma Ad)") },
             modifier = Modifier.fillMaxWidth(),
             colors = OutlinedTextFieldDefaults.colors(
                 unfocusedTextColor = Color.White,
@@ -126,7 +112,7 @@ fun RegisterStep1Screen(navController: NavController) {
                 .fillMaxWidth()
                 .height(56.dp),
             colors = ButtonDefaults.buttonColors(containerColor = YankiGreen),
-            enabled = fullName.isNotBlank() && username.isNotBlank()
+            enabled = viewModel.fullName.isNotBlank()
         ) {
             Text(text = "Devam Et", color = YankiDarkBg, fontWeight = FontWeight.Bold)
         }

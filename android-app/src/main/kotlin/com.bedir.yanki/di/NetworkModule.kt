@@ -16,17 +16,9 @@ object NetworkModule {
     @Provides
     @Singleton
     fun provideGrpcChannel(): ManagedChannel {
-        // EMÜLATÖR İÇİN KESİN ÇÖZÜM: 10.0.2.2 (Bilgisayarın localhost'una tüneldir)
-        // Eğer GERÇEK CİHAZ kullanıyorsanız buraya bilgisayarınızın yerel IP'sini yazın (örn: "192.168.1.50")
-        val host = "10.0.2.2"
-        
-        android.util.Log.i("YANKI_NET", "gRPC Sunucusuna Bağlanılıyor: $host:50051")
-
-        return ManagedChannelBuilder.forAddress(host, 50051)
+        // Gerçek cihaz bağlantısı için PC IP adresi kullanılıyor: 172.20.10.4
+        return ManagedChannelBuilder.forAddress("10.59.217.212", 50051)
             .usePlaintext()
-            .keepAliveTime(30, java.util.concurrent.TimeUnit.SECONDS)
-            .keepAliveWithoutCalls(true)
-            .maxInboundMessageSize(10 * 1024 * 1024)
             .build()
     }
 

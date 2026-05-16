@@ -29,8 +29,7 @@ import com.bedir.yanki.ui.viewmodel.MeshViewModel
 
 @Composable
 fun ProfileScreen(navController: NavController, viewModel: MeshViewModel) {
-    val meshStatus by viewModel.meshStatus.collectAsState()
-    val currentUser = meshStatus.neighbors.find { it.is_trusted } // Basitçe kendimizi buluyoruz
+    val currentUser by viewModel.currentUser.collectAsState()
 
     Column(
         modifier = Modifier
@@ -55,7 +54,7 @@ fun ProfileScreen(navController: NavController, viewModel: MeshViewModel) {
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
-                            text = currentUser?.username?.take(2)?.uppercase() ?: "??",
+                            text = (currentUser?.full_name ?: "??").split(" ").joinToString("") { it.take(1) }.uppercase(),
                             color = Color.White,
                             fontSize = 40.sp,
                             fontWeight = FontWeight.Bold
@@ -81,7 +80,7 @@ fun ProfileScreen(navController: NavController, viewModel: MeshViewModel) {
                     fontWeight = FontWeight.Bold
                 )
                 Text(
-                    text = "@${currentUser?.username ?: "username"} · YANKI",
+                    text = "YANKI Kullanıcısı",
                     color = Color.Gray,
                     fontSize = 16.sp
                 )
@@ -148,7 +147,13 @@ fun ProfileScreen(navController: NavController, viewModel: MeshViewModel) {
                 iconBg = Color(0xFFFADBD8),
                 iconColor = Color.Red,
                 titleColor = Color.Red,
-                onClick = { /* Reset Logic */ }
+                onClick = { 
+                    viewModel.clearAllData {
+                        navController.navigate(Screen.Welcome.route) {
+                            popUpTo(0) { inclusive = true }
+                        }
+                    }
+                }
             )
 
             Spacer(modifier = Modifier.height(24.dp))
@@ -158,7 +163,13 @@ fun ProfileScreen(navController: NavController, viewModel: MeshViewModel) {
                 title = "Çıkış Yap",
                 subtitle = "Hesaptan çıkış yapar",
                 iconBg = YankiDarkBg,
-                onClick = { /* Logout Logic */ }
+                onClick = { 
+                    viewModel.logout {
+                        navController.navigate(Screen.Welcome.route) {
+                            popUpTo(0) { inclusive = true }
+                        }
+                    }
+                }
             )
         }
     }

@@ -22,4 +22,10 @@ interface EmergencySignalDao {
 
     @Query("UPDATE emergency_signals SET is_synced = 1 WHERE signal_id = :signalId")
     suspend fun markAsSynced(signalId: String)
+
+    @Query("DELETE FROM emergency_signals")
+    suspend fun deleteAllSignals()
+
+    @Query("DELETE FROM emergency_signals WHERE timestamp < :threshold")
+    suspend fun deleteOldSignals(threshold: Long)
 }

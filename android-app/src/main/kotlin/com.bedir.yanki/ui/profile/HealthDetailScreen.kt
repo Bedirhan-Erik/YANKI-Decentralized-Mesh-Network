@@ -1,8 +1,10 @@
 package com.bedir.yanki.ui.profile
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -20,6 +22,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
+import com.bedir.yanki.ui.navigation.Screen
 import com.bedir.yanki.ui.theme.YankiDarkBg
 import com.bedir.yanki.ui.theme.YankiGreen
 import com.bedir.yanki.ui.viewmodel.MeshViewModel
@@ -27,13 +30,12 @@ import com.bedir.yanki.ui.viewmodel.MeshViewModel
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HealthDetailScreen(navController: NavController, viewModel: MeshViewModel) {
-    val meshStatus by viewModel.meshStatus.collectAsState()
-    val currentUser = meshStatus.neighbors.find { it.is_trusted }
+    val currentUser by viewModel.currentUser.collectAsState()
 
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Ayarlar", fontWeight = FontWeight.Bold) },
+                title = { Text("Sağlık Bilgileri", fontWeight = FontWeight.Bold) },
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Geri")
@@ -56,20 +58,15 @@ fun HealthDetailScreen(navController: NavController, viewModel: MeshViewModel) {
                     iconTint = Color(0xFFE74C3C),
                     title = "Kan grubu",
                     value = currentUser?.blood_type ?: "Seçilmedi",
-                    valueColor = Color(0xFFE74C3C)
+                    valueColor = Color(0xFFE74C3C),
+                    onClick = { navController.navigate(Screen.EditHealth.createRoute("blood_type")) }
                 )
                 HealthItem(
                     icon = Icons.Default.Person,
                     iconTint = Color(0xFF3498DB),
                     title = "Ad Soyad",
-                    value = currentUser?.full_name ?: "-",
-                    subtitle = "Penisilin · Polen" // Example data from image
-                )
-                HealthItem(
-                    icon = Icons.Default.Description,
-                    iconTint = Color(0xFFF39C12),
-                    title = "Yaş",
-                    value = "24" // Example data from image
+                    value = currentUser?.full_name ?: "Belirtilmedi",
+                    showArrow = false
                 )
             }
 
@@ -80,20 +77,15 @@ fun HealthDetailScreen(navController: NavController, viewModel: MeshViewModel) {
                     icon = Icons.Default.Add,
                     iconTint = Color(0xFF2ECC71),
                     title = "Kullandığı ilaçlar",
-                    value = currentUser?.medications ?: "Yok"
+                    value = currentUser?.medications ?: "Belirtilmedi",
+                    onClick = { navController.navigate(Screen.EditHealth.createRoute("medications")) }
                 )
                 HealthItem(
                     icon = Icons.Default.Info,
                     iconTint = Color(0xFF3498DB),
                     title = "Alerjiler",
-                    value = currentUser?.allergies ?: "Yok",
-                    subtitle = "Penisilin · Polen"
-                )
-                HealthItem(
-                    icon = Icons.Default.Timeline,
-                    iconTint = Color(0xFF9B59B6),
-                    title = "Kronik hastalık",
-                    value = "Yok"
+                    value = currentUser?.allergies ?: "Belirtilmedi",
+                    onClick = { navController.navigate(Screen.EditHealth.createRoute("allergies")) }
                 )
             }
 
@@ -103,15 +95,9 @@ fun HealthDetailScreen(navController: NavController, viewModel: MeshViewModel) {
                 HealthItem(
                     icon = Icons.Default.Person,
                     iconTint = Color(0xFFE91E63),
-                    title = "Acil iletişim",
-                    value = "Anne · +90 532 xxx xx xx"
-                )
-                HealthItem(
-                    icon = Icons.Default.Call,
-                    iconTint = Color(0xFF111721),
-                    title = "Kişi Ekle",
-                    value = "",
-                    showArrow = false
+                    title = "Acil durum yakını",
+                    value = currentUser?.emergency_contact ?: "Eklenmedi",
+                    onClick = { navController.navigate(Screen.EditHealth.createRoute("emergency_contact")) }
                 )
             }
         }
@@ -149,12 +135,13 @@ fun HealthItem(
     value: String,
     subtitle: String? = null,
     valueColor: Color = Color.Black,
-    showArrow: Boolean = true
+    showArrow: Boolean = true,
+    onClick: () -> Unit = {}
 ) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable { }
+            .clickable(enabled = showArrow) { onClick() }
             .padding(16.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {

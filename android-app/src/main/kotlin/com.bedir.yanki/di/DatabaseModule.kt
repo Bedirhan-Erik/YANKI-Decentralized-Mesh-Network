@@ -6,6 +6,7 @@ import com.bedir.yanki.data.local.YankiDatabase
 import com.bedir.yanki.data.local.dao.UserDao
 import com.bedir.yanki.data.local.dao.MessageDao
 import com.bedir.yanki.data.local.dao.EmergencySignalDao
+import com.bedir.yanki.data.local.dao.BulletinDao
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -45,5 +46,11 @@ object DatabaseModule {
     @Singleton
     fun provideEmergencySignalDao(database: YankiDatabase): EmergencySignalDao {
         return database.emergencySignalDao()
+    }
+
+    @Provides
+    @Singleton
+    fun provideBulletinDao(database: YankiDatabase): BulletinDao {
+        return database.bulletinDao()
     }
 }

@@ -8,11 +8,16 @@ import androidx.room.PrimaryKey
 
 @Entity(
     tableName = "messages",
-    indices = [Index("sender_id"), Index("receiver_id")]
+    indices = [
+        Index("sender_id"),
+        Index("receiver_id"),
+        Index("is_synced")
+    ]
 )
 data class MessageEntity(
     @PrimaryKey val msg_id: String,
     val sender_id: String,
+    val sender_name: String? = null, // Yeni alan
     val receiver_id: String,
     @ColumnInfo(typeAffinity = ColumnInfo.BLOB)
     val content_blob: ByteArray,

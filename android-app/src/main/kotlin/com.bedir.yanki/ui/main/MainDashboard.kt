@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Announcement
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.Info
@@ -170,23 +171,13 @@ fun MainDashboard(navController: NavController, viewModel: MeshViewModel = hiltV
             item {
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     QuickAccessCard(
-                        title = "Harita",
-                        statusText = if (meshUiState.isMeshActive) "Aktif" else "Kapalı",
-                        subTitle = "${meshUiState.neighborCount} Komşu",
-                        icon = Icons.Default.LocationOn,
-                        statusColor = if (meshUiState.isMeshActive) YankiGreen else YankiGreyDot,
+                        title = "Duyurular",
+                        statusText = if (viewModel.allBulletins.collectAsState().value.isNotEmpty()) "Yeni" else "Yok",
+                        subTitle = "Yerel Pano",
+                        icon = Icons.AutoMirrored.Filled.Announcement,
+                        statusColor = YankiGreen,
                         modifier = Modifier.weight(1f),
-                        onClick = {
-                            val gmmIntentUri = Uri.parse("geo:${userStatus.latitude},${userStatus.longitude}?z=15")
-                            val mapIntent = Intent(Intent.ACTION_VIEW, gmmIntentUri)
-                            mapIntent.setPackage("com.google.android.apps.maps")
-                            try {
-                                context.startActivity(mapIntent)
-                            } catch (e: Exception) {
-                                val browserIntent = Intent(Intent.ACTION_VIEW, Uri.parse("https://www.google.com/maps/@${userStatus.latitude},${userStatus.longitude},15z"))
-                                context.startActivity(browserIntent)
-                            }
-                        }
+                        onClick = { navController.navigate(Screen.BulletinBoard.route) }
                     )
                     QuickAccessCard(
                         title = "Mesajlar",
@@ -198,6 +189,30 @@ fun MainDashboard(navController: NavController, viewModel: MeshViewModel = hiltV
                         onClick = { navController.navigate(Screen.Messages.route) }
                     )
                 }
+            }
+
+            item { Spacer(modifier = Modifier.height(12.dp)) }
+
+            item {
+                QuickAccessCard(
+                    title = "Harita",
+                    statusText = if (meshUiState.isMeshActive) "Aktif" else "Kapalı",
+                    subTitle = "${meshUiState.neighborCount} Komşu Bulundu",
+                    icon = Icons.Default.LocationOn,
+                    statusColor = if (meshUiState.isMeshActive) YankiGreen else YankiGreyDot,
+                    modifier = Modifier.fillMaxWidth(),
+                    onClick = {
+                        val gmmIntentUri = Uri.parse("geo:${userStatus.latitude},${userStatus.longitude}?z=15")
+                        val mapIntent = Intent(Intent.ACTION_VIEW, gmmIntentUri)
+                        mapIntent.setPackage("com.google.android.apps.maps")
+                        try {
+                            context.startActivity(mapIntent)
+                        } catch (e: Exception) {
+                            val browserIntent = Intent(Intent.ACTION_VIEW, Uri.parse("https://www.google.com/maps/@${userStatus.latitude},${userStatus.longitude},15z"))
+                            context.startActivity(browserIntent)
+                        }
+                    }
+                )
             }
         }
     }

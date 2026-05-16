@@ -6,7 +6,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowForward
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -99,7 +99,8 @@ fun LoginScreen(navController: NavController) {
             placeholder = { Text("Kullanıcı adı") },
             modifier = Modifier.fillMaxWidth(),
             colors = TextFieldDefaults.colors(
-                containerColor = Color(0xFFF5F6F7),
+                focusedContainerColor = Color(0xFFF5F6F7),
+                unfocusedContainerColor = Color(0xFFF5F6F7),
                 focusedIndicatorColor = Color.Transparent,
                 unfocusedIndicatorColor = Color.Transparent
             ),
@@ -114,7 +115,8 @@ fun LoginScreen(navController: NavController) {
             placeholder = { Text("Cihaz şifresi") },
             modifier = Modifier.fillMaxWidth(),
             colors = TextFieldDefaults.colors(
-                containerColor = Color(0xFFF5F6F7),
+                focusedContainerColor = Color(0xFFF5F6F7),
+                unfocusedContainerColor = Color(0xFFF5F6F7),
                 focusedIndicatorColor = Color.Transparent,
                 unfocusedIndicatorColor = Color.Transparent
             ),
@@ -142,7 +144,7 @@ fun LoginScreen(navController: NavController) {
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(text = "Parmak izi ile giriş", modifier = Modifier.weight(1f), color = Color.Black)
-                Icon(imageVector = Icons.Default.ArrowForward, contentDescription = null, tint = Color.Gray, modifier = Modifier.size(16.dp))
+                Icon(imageVector = Icons.AutoMirrored.Filled.ArrowForward, contentDescription = null, tint = Color.Gray, modifier = Modifier.size(16.dp))
             }
         }
 
