@@ -65,7 +65,7 @@ class SyncWorker @AssistedInject constructor(
 
             // --- 2. PUSH: Yerel verileri gönder ---
             val unsyncedMessages = repository.getUnsyncedMessages()
-            val unsyncedSignals = repository.getAllSignals().filter { !it.is_synced }
+            val unsyncedSignals = repository.getUnsyncedSignals()
             val unsyncedBulletins = repository.getUnsyncedBulletins()
 
             if (!pullSuccess && unsyncedMessages.isEmpty() && unsyncedSignals.isEmpty() && unsyncedBulletins.isEmpty()) {

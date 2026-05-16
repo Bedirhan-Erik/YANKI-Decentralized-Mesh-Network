@@ -344,6 +344,7 @@ class YankiRepository @Inject constructor(
     // ==========================================
     suspend fun saveEmergencySignal(signal: EmergencySignalEntity) = emergencySignalDao.insertSignal(signal)
     suspend fun getAllSignals() = emergencySignalDao.getAllSignals()
+    suspend fun getUnsyncedSignals() = emergencySignalDao.getPendingSignals()
 
     suspend fun sendEmergencySignal(type: String, lat: Double, lon: Double, battery: Int) {
         val myProfile = userDao.getUserById(currentUserId)
@@ -528,12 +529,24 @@ class YankiRepository @Inject constructor(
 
     private fun triggerImmediateCloudSync() {
         try {
+            // Ağ bağlantısı şart: bağlantı yoksa WorkManager bekler, gelince çalıştırır
+            val constraints = androidx.work.Constraints.Builder()
+                .setRequiredNetworkType(androidx.work.NetworkType.CONNECTED)
+                .build()
+
             val syncRequest = androidx.work.OneTimeWorkRequestBuilder<com.bedir.yanki.data.remote.sync.SyncWorker>()
-                .build() 
-            
+                .setConstraints(constraints)
+                .setBackoffCriteria(
+                    androidx.work.BackoffPolicy.EXPONENTIAL,
+                    androidx.work.WorkRequest.MIN_BACKOFF_MILLIS,
+                    java.util.concurrent.TimeUnit.MILLISECONDS
+                )
+                .build()
+
+            // KEEP: Zaten bekleyen/çalışan bir iş varsa iptal etme (REPLACE backoff'u sıfırlıyordu)
             androidx.work.WorkManager.getInstance(context)
-                .enqueueUniqueWork("immediate_sync", androidx.work.ExistingWorkPolicy.REPLACE, syncRequest)
-            Log.d("YANKI_SYNC", "Anlık bulut senkronizasyonu tetiklendi (Kısıtlamasız).")
+                .enqueueUniqueWork("immediate_sync", androidx.work.ExistingWorkPolicy.KEEP, syncRequest)
+            Log.d("YANKI_SYNC", "Anlık bulut senkronizasyonu tetiklendi (ağ bekleniyor).")
         } catch (e: Exception) {
             Log.e("YANKI_SYNC", "WorkManager tetikleme hatası: ${e.message}")
         }
