@@ -1,0 +1,85 @@
+syntax = "proto3";
+
+package yanki;
+
+option java_package = "com.bedir.yanki";
+option java_outer_classname = "Yanki";
+
+// Tablo 1: Users (Kullanıcılar)
+message User {
+  string user_id = 1;
+  string user_name = 2;
+  bytes public_key = 3;
+  int64 last_seen = 4;
+  bool is_trusted = 5;
+  string blood_type = 6;
+  string allergies = 7;
+  string medications = 8;
+  string emergency_contact = 9;
+}
+
+message Message {
+  string msg_id = 1;
+  string sender_id = 2;
+  string sender_name = 10; // Yeni alan
+  string receiver_id = 3;
+  bytes content_blob = 4;
+  int64 timestamp = 5;
+  int32 status = 6;
+  bool is_synced = 7;
+  int32 ttl = 8;
+  bytes signature = 9;
+}
+
+message EmergencySignal {
+  string signal_id = 1; // String formatına çekildi (UUID)
+  string user_id = 2;
+  string user_name = 12; // Yeni alan: Kullanıcı ismi
+  double latitude = 3;
+  double longitude = 4;
+  string emergency_type = 5;
+  int32 battery_level = 6;
+  int32 hop_count = 7;
+  int64 timestamp = 8;
+  string blood_type = 9;
+  string allergies = 10;
+  string medications = 11;
+}
+
+message BulletinPost {
+  string post_id = 1;
+  string sender_id = 2;
+  string sender_name = 3;
+  string content = 4;
+  int64 timestamp = 5;
+  string type = 6; // INFO, NEED, ALERT
+  double latitude = 7;
+  double longitude = 8;
+  int32 ttl = 9;
+}
+
+// Wi-Fi Aware ve Mesh için toplu paket taşıyıcı
+message MeshPayload {
+  repeated Message messages = 1;
+  repeated EmergencySignal signals = 2;
+  repeated User users = 3;
+  repeated BulletinPost bulletins = 4;
+}
+
+service YankiSyncService {
+  rpc SyncMessages (Message) returns (SyncResponse);
+  rpc SendEmergencySignal (EmergencySignal) returns (SyncResponse);
+  rpc SyncBulletin (BulletinPost) returns (SyncResponse);
+  rpc RegisterUser (User) returns (SyncResponse);
+  rpc GetNewData (SyncRequest) returns (MeshPayload);
+}
+
+message SyncRequest {
+  string user_id = 1;
+  int64 last_sync_time = 2;
+}
+
+message SyncResponse {
+  bool success = 1;
+  string message = 2;
+}
