@@ -6,7 +6,7 @@ const fs   = require('fs');
 const { db } = require('./firebase-config');
 const admin = require('firebase-admin');
 
-const PROTO_PATH = path.join(__dirname, '../protocols/yanki.proto');
+const PROTO_PATH = path.join(__dirname, 'protos/yanki.proto');
 
 const packageDefinition = protoLoader.loadSync(PROTO_PATH, {
     keepCase: true, longs: String, enums: String, defaults: true, oneofs: true

@@ -4,7 +4,7 @@ const path = require('path');
 
 
 // Proto dosyasını okuyoruz
-const PROTO_PATH = path.join(__dirname, '../protocols/yanki.proto');
+const PROTO_PATH = path.join(__dirname, 'protos/yanki.proto');
 const packageDefinition = protoLoader.loadSync(PROTO_PATH, {
     keepCase: true, longs: String, enums: String, defaults: true, oneofs: true
 });
