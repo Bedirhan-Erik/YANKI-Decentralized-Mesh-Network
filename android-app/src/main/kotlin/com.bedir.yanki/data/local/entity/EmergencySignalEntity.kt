@@ -17,5 +17,6 @@ data class EmergencySignalEntity(
     val hop_count: Int = 0,
     val blood_type: String? = null,
     val allergies: String? = null,
-    val medications: String? = null
+    val medications: String? = null,
+    val emergency_contact: String? = null
 )

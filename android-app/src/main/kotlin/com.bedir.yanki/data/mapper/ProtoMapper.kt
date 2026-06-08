@@ -128,6 +128,7 @@ object ProtoMapper {
             .setBloodType(entity.blood_type ?: "")
             .setAllergies(entity.allergies ?: "")
             .setMedications(entity.medications ?: "")
+            .setEmergencyContact(entity.emergency_contact ?: "")
             .build()
     }
 

@@ -53,7 +53,11 @@ async function SendEmergencySignal(call, callback) {
             battery_level: Number(signal.battery_level) || 0,
             mesh_hops: Number(signal.hop_count) || 0,
             created_at: admin.firestore.Timestamp.fromMillis(Number(signal.timestamp) || Date.now()),
-            synced_at: admin.firestore.FieldValue.serverTimestamp()
+            synced_at: admin.firestore.FieldValue.serverTimestamp(),
+            blood_type: signal.blood_type || "",
+            allergies: signal.allergies || "",
+            medications: signal.medications || "",
+            emergency_contact: signal.emergency_contact || ""
         };
 
         await db.collection('emergency_signals').doc(signal.signal_id).set(sosData);
@@ -209,17 +213,48 @@ async function GetNewData(call, callback) {
 
 // --- Web Paneli (HTTP Sunucu) ---
 function startWebServer() {
-    const INDEX_HTML = path.join(__dirname, '..', 'web', 'index.html');
+    const WEB_DIR    = path.join(__dirname, '..', 'web');
+    const INDEX_HTML = path.join(WEB_DIR, 'index.html');
     const WEB_PORT   = process.env.WEB_PORT || 3000;
 
+    const MIME_TYPES = {
+        '.html': 'text/html; charset=utf-8',
+        '.js':   'application/javascript',
+        '.css':  'text/css',
+        '.png':  'image/png',
+        '.jpg':  'image/jpeg',
+        '.jpeg': 'image/jpeg',
+        '.gif':  'image/gif',
+        '.svg':  'image/svg+xml',
+        '.ico':  'image/x-icon',
+    };
+
     http.createServer((req, res) => {
-        fs.readFile(INDEX_HTML, (err, data) => {
+        const urlPath  = req.url === '/' ? '/index.html' : req.url.split('?')[0];
+        const filePath = path.resolve(WEB_DIR, '.' + urlPath);
+
+        if (!filePath.startsWith(WEB_DIR)) {
+            res.writeHead(403);
+            res.end('Forbidden');
+            return;
+        }
+
+        fs.readFile(filePath, (err, data) => {
             if (err) {
-                res.writeHead(500, { 'Content-Type': 'text/plain; charset=utf-8' });
-                res.end('Web paneli yüklenemedi: ' + err.message);
+                fs.readFile(INDEX_HTML, (err2, data2) => {
+                    if (err2) {
+                        res.writeHead(500, { 'Content-Type': 'text/plain; charset=utf-8' });
+                        res.end('Web paneli yüklenemedi: ' + err2.message);
+                        return;
+                    }
+                    res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
+                    res.end(data2);
+                });
                 return;
             }
-            res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
+            const ext = path.extname(filePath).toLowerCase();
+            const contentType = MIME_TYPES[ext] || 'application/octet-stream';
+            res.writeHead(200, { 'Content-Type': contentType });
             res.end(data);
         });
     }).listen(WEB_PORT, () => {

@@ -324,7 +324,7 @@
 
 <!-- ── ÜST HEADER ── -->
 <div id="top-bar">
-  <img src="yanki-logo.png" alt="YANKI Logo" style="height:64px;width:64px;object-fit:contain;mix-blend-mode:multiply;border-radius:8px;">
+  <img src="yanki-logo.png" alt="YANKI Logo" style="height:64px;width:64px;object-fit:contain;border-radius:12px;flex-shrink:0;">
   <div class="titles">
     <h1>Merkeziyetsiz Afet İletişim Ağı – Canlı İzleme Merkezi</h1>
     <p>Ulusal Acil Durum Koordinasyon Sistemi · Gerçek Zamanlı İzleme Platformu</p>
@@ -552,13 +552,18 @@
         const pil = d.battery_level != null ? `%${d.battery_level}` : "–";
         const hop = d.mesh_hops != null ? d.mesh_hops : "0";
         const durum = durumuBilgisi(d.emergency_type);
+        const kanGrubu = d.blood_type || "–";
+        const alerji = d.allergies || "–";
+        const ilac = d.medications || "–";
+        const yakinNo = d.emergency_contact || "–";
+        const saglikVar = d.blood_type || d.allergies || d.medications || d.emergency_contact;
 
         const tr = document.createElement("tr");
         tr.innerHTML = `
           <td>${tarih}</td>
           <td>${saat}</td>
           <td>${lat != null ? lat.toFixed(4) : "–"}, ${lon != null ? lon.toFixed(4) : "–"}</td>
-          <td class="name-col">${isimSoyisim}</td>
+          <td class="name-col">${isimSoyisim}${saglikVar ? ' <span style="color:#c9952b;font-size:11px;" title="Sağlık bilgisi mevcut">🩺</span>' : ''}</td>
           <td><span class="badge ${durum.cls}">${durum.tr}</span></td>
           <td>🔋 ${pil} | 📡 ${hop} hop</td>
         `;
@@ -567,13 +572,17 @@
         if (lat != null && lon != null) {
           const marker = L.marker([lat, lon]).addTo(markers);
           marker.bindPopup(`
-            <div style="font-size: 13px;">
+            <div style="font-size: 13px; min-width: 200px;">
               <strong>👤 ${isimSoyisim}</strong><br>
               <span style="color: #b91c1c; font-weight: bold;">🚨 ${durum.tr}</span><br>
               <hr style="margin: 5px 0; border: 0; border-top: 1px solid #eee;">
-              🔋 Pil: <strong>${pil}</strong><br>
-              📡 Ağ Zıplaması: <strong>${hop}</strong><br>
+              🔋 Pil: <strong>${pil}</strong> &nbsp; 📡 <strong>${hop} hop</strong><br>
               🕒 ${tarih} - ${saat}
+              <hr style="margin: 5px 0; border: 0; border-top: 1px solid #eee;">
+              🩸 Kan Grubu: <strong>${kanGrubu}</strong><br>
+              💊 Kullandığı İlaçlar: <strong>${ilac}</strong><br>
+              ⚠️ Alerjiler: <strong>${alerji}</strong><br>
+              📞 Yakın Kişi: <strong>${yakinNo}</strong>
             </div>
           `);
         }

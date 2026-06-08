@@ -361,7 +361,8 @@ class YankiRepository @Inject constructor(
             hop_count = 0,
             blood_type = myProfile?.blood_type,
             allergies = myProfile?.allergies,
-            medications = myProfile?.medications
+            medications = myProfile?.medications,
+            emergency_contact = myProfile?.emergency_contact
         )
         saveEmergencySignal(signal)
         Log.d("YANKI_REPO", "SOS Sinyali yerel veritabanına kaydedildi. Bulut tetikleniyor...")
