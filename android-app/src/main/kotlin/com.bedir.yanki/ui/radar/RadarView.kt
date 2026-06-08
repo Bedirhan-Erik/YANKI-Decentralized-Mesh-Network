@@ -76,17 +76,8 @@ fun RadarView(
                 center = center
             )
 
-            if (isMeshActive && (neighborCount > 0 || neighbors.isNotEmpty())) {
-                val displayPoints = neighbors.ifEmpty {
-                    listOf(
-                        NeighborPoint(-0.6f, -0.6f, true),
-                        NeighborPoint(0.7f, -0.4f, true),
-                        NeighborPoint(-0.5f, 0.7f, true),
-                        NeighborPoint(0.8f, 0.5f, false)
-                    ).take(neighborCount)
-                }
-
-                displayPoints.forEach { point ->
+            if (isMeshActive && neighbors.isNotEmpty()) {
+                neighbors.forEach { point ->
                     val dotPositionX = center.x + (point.xRatio * maxRadius)
                     val dotPositionY = center.y + (point.yRatio * maxRadius)
                     val dotCenter = Offset(dotPositionX, dotPositionY)

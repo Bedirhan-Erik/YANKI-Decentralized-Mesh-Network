@@ -12,8 +12,6 @@ interface MessageDao {
     @Query("SELECT EXISTS(SELECT 1 FROM messages WHERE msg_id = :msgId)")
     suspend fun isMessageExists(msgId: String): Boolean
 
-    @Query("SELECT * FROM messages WHERE sender_id = :userId OR receiver_id = :userId ORDER BY timestamp ASC")
-    fun getMessagesWithUser(userId: String): Flow<List<MessageEntity>>
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertMessage(message: MessageEntity)
 
@@ -31,5 +29,8 @@ interface MessageDao {
 
     @Query("SELECT * FROM messages WHERE is_synced = 0 ORDER BY timestamp DESC LIMIT 20")
     suspend fun getPendingMessages(): List<MessageEntity>
+
+    @Query("DELETE FROM messages")
+    suspend fun deleteAllMessages()
 }
 

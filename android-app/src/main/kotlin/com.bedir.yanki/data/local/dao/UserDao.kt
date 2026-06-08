@@ -15,12 +15,18 @@ interface UserDao {
     @Query("SELECT * FROM users WHERE user_id = :userId")
     suspend fun getUserById(userId: String): UserEntity?
 
+    @Query("SELECT * FROM users WHERE user_id = :userId")
+    fun getUserFlow(userId: String): Flow<UserEntity?>
+
     @Query("SELECT * FROM users ORDER BY last_seen DESC")
     fun getAllUsersFlow(): Flow<List<UserEntity>>
 
     @Query("SELECT * FROM users")
     suspend fun getAllUsers(): List<UserEntity>
 
-    @Query("UPDATE users SET last_seen = :timestamp, last_mac = :macAddress WHERE user_id = :userId")
-    suspend fun updateLastSeen(userId: String, timestamp: Long, macAddress: String)
+    @Query("UPDATE users SET last_seen = :timestamp, last_mac = :macAddress, last_rssi = :rssi WHERE user_id = :userId")
+    suspend fun updateLastSeen(userId: String, timestamp: Long, macAddress: String, rssi: Int)
+
+    @Query("DELETE FROM users")
+    suspend fun deleteAllUsers()
 }

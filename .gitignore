@@ -16,3 +16,4 @@ local.properties
 /android-app/build
 node_modules/
 package-lock.json
+backend-server/firebase-config.json
