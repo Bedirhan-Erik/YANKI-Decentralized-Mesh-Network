@@ -27,6 +27,12 @@ interface UserDao {
     @Query("UPDATE users SET last_seen = :timestamp, last_mac = :macAddress, last_rssi = :rssi WHERE user_id = :userId")
     suspend fun updateLastSeen(userId: String, timestamp: Long, macAddress: String, rssi: Int)
 
+    @Query("SELECT * FROM users WHERE last_mac = :mac LIMIT 1")
+    suspend fun getUserByMac(mac: String): UserEntity?
+
+    @Query("DELETE FROM users WHERE user_id = :userId")
+    suspend fun deleteUserById(userId: String)
+
     @Query("DELETE FROM users")
     suspend fun deleteAllUsers()
 }

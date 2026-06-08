@@ -323,7 +323,10 @@ class YankiRepository @Inject constructor(
                 }
             }
 
-            if (incomingMessage.receiver_id == currentUserId) {
+            // receiver_id eski 4-char prefix olabilir, tam UUID ile prefix karşılaştırması yap
+            val isForMe = incomingMessage.receiver_id == currentUserId ||
+                (incomingMessage.receiver_id.length < 36 && currentUserId.startsWith(incomingMessage.receiver_id))
+            if (isForMe) {
                 messageDao.insertMessage(incomingMessage.copy(status = STATUS_RECEIVED))
             } else {
                 if (incomingMessage.ttl > 0) {
@@ -427,8 +430,8 @@ class YankiRepository @Inject constructor(
 
         // 1. BLE'den gelenleri dinle
         scope.launch {
-            bleMeshManager.dataReceivedFlow.collect { data ->
-                processIncomingPayload(data, scope)
+            bleMeshManager.dataReceivedFlow.collect { (senderMac, data) ->
+                processIncomingPayload(data, scope, senderMac)
             }
         }
 
@@ -463,7 +466,7 @@ class YankiRepository @Inject constructor(
         }
     }
 
-    private fun processIncomingPayload(data: ByteArray, scope: CoroutineScope) {
+    private fun processIncomingPayload(data: ByteArray, scope: CoroutineScope, senderMac: String = "") {
         Log.d("YANKI_MESH", "AĞDAN VERİ GELDİ! Boyut: ${data.size} byte")
         val parsedPayload = ProtoMapper.parseIncomingPayload(data)
         if (parsedPayload != null) {
@@ -474,13 +477,26 @@ class YankiRepository @Inject constructor(
                         // Önce kullanıcı bilgilerini (Public Key) güncelle/kaydet ki mesaj imzaları doğrulanabilsin
                         parsedPayload.users.forEach { user ->
                             if (user.user_id != currentUserId) {
-                                val existing = userDao.getUserById(user.user_id)
+                                var existing = userDao.getUserById(user.user_id)
+
+                                // Eğer tam ID ile bulunamazsa MAC adresiyle stub kaydı ara ve güncelle
+                                if (existing == null && senderMac.isNotBlank()) {
+                                    val stub = userDao.getUserByMac(senderMac)
+                                    if (stub != null && stub.user_id != user.user_id) {
+                                        // Stub kaydını sil, gerçek ID ile yenisini ekleyeceğiz
+                                        userDao.deleteUserById(stub.user_id)
+                                        existing = stub.copy(user_id = user.user_id)
+                                        Log.d("YANKI_MESH", "Stub '${stub.user_id}' → gerçek ID '${user.user_id}' ile güncellendi")
+                                    }
+                                }
+
                                 if (existing == null) {
-                                    userDao.insertOrUpdateUser(user)
-                                } else if (user.last_seen > existing.last_seen) {
-                                    // Sadece daha güncel bir bilgi geldiyse güncelle
                                     userDao.insertOrUpdateUser(user.copy(
-                                        last_mac = existing.last_mac,
+                                        last_mac = if (senderMac.isNotBlank()) senderMac else user.last_mac
+                                    ))
+                                } else {
+                                    userDao.insertOrUpdateUser(user.copy(
+                                        last_mac = existing.last_mac ?: senderMac,
                                         last_rssi = existing.last_rssi,
                                         blood_type = existing.blood_type ?: user.blood_type,
                                         allergies = existing.allergies ?: user.allergies,

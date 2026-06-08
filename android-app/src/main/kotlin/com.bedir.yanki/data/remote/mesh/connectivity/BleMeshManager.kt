@@ -39,8 +39,8 @@ class BleMeshManager @Inject constructor(
     private var scanCallback: ScanCallback? = null
     private var gattServer: BluetoothGattServer? = null
 
-    private val _dataReceivedFlow = MutableSharedFlow<ByteArray>(extraBufferCapacity = 64)
-    val dataReceivedFlow: SharedFlow<ByteArray> = _dataReceivedFlow.asSharedFlow()
+    private val _dataReceivedFlow = MutableSharedFlow<Pair<String, ByteArray>>(extraBufferCapacity = 64)
+    val dataReceivedFlow: SharedFlow<Pair<String, ByteArray>> = _dataReceivedFlow.asSharedFlow()
 
     private val _isScanning = MutableStateFlow(false)
     val isScanning: StateFlow<Boolean> = _isScanning.asStateFlow()
@@ -389,12 +389,12 @@ class BleMeshManager @Inject constructor(
                         Log.d("YANKI_BLE", "Tüm parçalar birleşti, paket işleniyor...")
                         val fullData = reassembler.getFullData()
                         reassemblers.remove(key)
-                        _dataReceivedFlow.tryEmit(fullData)
+                        _dataReceivedFlow.tryEmit(Pair(device.address, fullData))
                     }
                 } else {
                     // Normal paket
                     Log.d("YANKI_BLE", "${device.address} cihazından tekil veri geldi.")
-                    _dataReceivedFlow.tryEmit(value)
+                    _dataReceivedFlow.tryEmit(Pair(device.address, value))
                 }
 
                 if (responseNeeded) {
