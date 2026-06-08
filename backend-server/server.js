@@ -53,7 +53,11 @@ async function SendEmergencySignal(call, callback) {
             battery_level: Number(signal.battery_level) || 0,
             mesh_hops: Number(signal.hop_count) || 0,
             created_at: admin.firestore.Timestamp.fromMillis(Number(signal.timestamp) || Date.now()),
-            synced_at: admin.firestore.FieldValue.serverTimestamp()
+            synced_at: admin.firestore.FieldValue.serverTimestamp(),
+            blood_type: signal.blood_type || "",
+            allergies: signal.allergies || "",
+            medications: signal.medications || "",
+            emergency_contact: signal.emergency_contact || ""
         };
 
         await db.collection('emergency_signals').doc(signal.signal_id).set(sosData);
