@@ -200,6 +200,7 @@ class YankiRepository @Inject constructor(
     }
     fun getChatHistory(userId: String) = messageDao.getChatHistory(userId)
     fun getAllMessagesFlow() = messageDao.getAllMessages()
+    fun getLastMessageWithUser(userId: String) = messageDao.getLastMessageWithUser(userId)
 
 
     suspend fun sendMessage(content: String, receiverId: String) {

@@ -32,5 +32,8 @@ interface MessageDao {
 
     @Query("DELETE FROM messages")
     suspend fun deleteAllMessages()
+
+    @Query("SELECT * FROM messages WHERE (sender_id = :userId OR receiver_id = :userId) ORDER BY timestamp DESC LIMIT 1")
+    fun getLastMessageWithUser(userId: String): Flow<MessageEntity?>
 }
 

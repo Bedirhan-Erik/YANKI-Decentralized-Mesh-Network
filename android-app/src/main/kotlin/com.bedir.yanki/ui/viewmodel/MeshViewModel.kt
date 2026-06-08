@@ -158,8 +158,10 @@ class MeshViewModel @Inject constructor(
     }
 
     fun getMessagesWithUser(userId: String): Flow<List<MessageEntity>> {
-        return repository.getChatHistory(userId) // Repository'den DAO'ya gider
+        return repository.getChatHistory(userId)
     }
+
+    fun getLastMessageWithUser(userId: String) = repository.getLastMessageWithUser(userId)
 
     fun sendMessage(receiverId: String, content: String) {
         viewModelScope.launch(Dispatchers.IO) {
