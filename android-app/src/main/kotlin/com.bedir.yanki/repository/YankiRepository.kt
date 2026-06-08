@@ -334,6 +334,21 @@ class YankiRepository @Inject constructor(
                     messageDao.insertMessage(relayedMessage)
                 }
             }
+
+            // Gönderenin adı mesajda varsa ve veritabanında "Bilinmeyen Komşu" olarak kayıtlıysa güncelle
+            if (!incomingMessage.sender_name.isNullOrBlank()) {
+                val existingSender = userDao.getUserById(incomingMessage.sender_id)
+                if (existingSender != null &&
+                    (existingSender.username == "Bilinmeyen Komşu" || existingSender.full_name == null)
+                ) {
+                    userDao.insertOrUpdateUser(
+                        existingSender.copy(
+                            username = incomingMessage.sender_name,
+                            full_name = incomingMessage.sender_name
+                        )
+                    )
+                }
+            }
         } catch (t: Throwable) {
             Log.e("YANKI_REPO", "handleIncomingMeshMessage fatal error: ${t.message}")
         }

@@ -103,13 +103,13 @@ fun MessagesListScreen(viewModel: MeshViewModel, navController: NavController) {
         ) {
             items(uiState.neighbors) { neighbor ->
                 ChatItem(
-                    name = neighbor.username,
+                    name = neighbor.full_name ?: neighbor.username,
                     lastMsg = "Mesajlaşmaya başlayın...",
                     time = "--:--",
                     unreadCount = 0,
                     color = Color(0xFFF0F0F0),
                     onClick = {
-                        navController.navigate(Screen.ChatDetail.createRoute(neighbor.user_id, neighbor.username))
+                        navController.navigate(Screen.ChatDetail.createRoute(neighbor.user_id, neighbor.full_name ?: neighbor.username))
                     }
                 )
             }
