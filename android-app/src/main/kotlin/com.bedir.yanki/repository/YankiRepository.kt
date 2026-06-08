@@ -479,14 +479,25 @@ class YankiRepository @Inject constructor(
                             if (user.user_id != currentUserId) {
                                 var existing = userDao.getUserById(user.user_id)
 
-                                // Eğer tam ID ile bulunamazsa MAC adresiyle stub kaydı ara ve güncelle
-                                if (existing == null && senderMac.isNotBlank()) {
-                                    val stub = userDao.getUserByMac(senderMac)
-                                    if (stub != null && stub.user_id != user.user_id) {
-                                        // Stub kaydını sil, gerçek ID ile yenisini ekleyeceğiz
-                                        userDao.deleteUserById(stub.user_id)
-                                        existing = stub.copy(user_id = user.user_id)
-                                        Log.d("YANKI_MESH", "Stub '${stub.user_id}' → gerçek ID '${user.user_id}' ile güncellendi")
+                                // Tam ID ile bulunamazsa: BLE kısa prefix stub'ı ara (MAC randomization'a karşı güvenli)
+                                if (existing == null) {
+                                    val stubs = userDao.getAllStubUsers()
+                                    val matchingStub = stubs.firstOrNull { stub ->
+                                        user.user_id.startsWith(stub.user_id)
+                                    }
+                                    if (matchingStub != null) {
+                                        userDao.deleteUserById(matchingStub.user_id)
+                                        existing = matchingStub.copy(user_id = user.user_id)
+                                        Log.d("YANKI_MESH", "Stub '${matchingStub.user_id}' → gerçek ID '${user.user_id}' ile güncellendi (prefix eşleşme)")
+                                    }
+                                    // İkincil kontrol: GATT bağlantı MAC'ine göre ara
+                                    if (existing == null && senderMac.isNotBlank()) {
+                                        val macStub = userDao.getUserByMac(senderMac)
+                                        if (macStub != null && macStub.user_id != user.user_id) {
+                                            userDao.deleteUserById(macStub.user_id)
+                                            existing = macStub.copy(user_id = user.user_id)
+                                            Log.d("YANKI_MESH", "Stub '${macStub.user_id}' → gerçek ID '${user.user_id}' ile güncellendi (MAC eşleşme)")
+                                        }
                                     }
                                 }
 

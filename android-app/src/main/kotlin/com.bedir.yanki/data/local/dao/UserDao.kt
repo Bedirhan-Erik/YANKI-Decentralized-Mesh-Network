@@ -33,6 +33,10 @@ interface UserDao {
     @Query("DELETE FROM users WHERE user_id = :userId")
     suspend fun deleteUserById(userId: String)
 
+    // Returns users whose user_id is shorter than a full UUID (stubs created from BLE advertisement prefix)
+    @Query("SELECT * FROM users WHERE length(user_id) < 36")
+    suspend fun getAllStubUsers(): List<UserEntity>
+
     @Query("DELETE FROM users")
     suspend fun deleteAllUsers()
 }
