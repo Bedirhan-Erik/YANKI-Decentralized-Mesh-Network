@@ -392,25 +392,39 @@ class YankiRepository @Inject constructor(
 
     suspend fun sendEmergencySignal(type: String, lat: Double, lon: Double, battery: Int) {
         val myProfile = userDao.getUserById(currentUserId)
-        
-        val signal = EmergencySignalEntity(
-            signal_id = UUID.randomUUID().toString(),
-            user_id = currentUserId,
-            user_name = myProfile?.full_name ?: myProfile?.username ?: "Anonim",
-            latitude = lat,
-            longitude = lon,
-            emergency_type = type,
-            battery_level = battery,
-            timestamp = System.currentTimeMillis(),
-            is_synced = false,
-            hop_count = 0,
-            blood_type = myProfile?.blood_type,
-            allergies = myProfile?.allergies,
-            medications = myProfile?.medications,
-            emergency_contact = myProfile?.emergency_contact
-        )
+        val rateLimitMs = 10 * 60 * 1000L
+
+        // Rate-limit: son 10 dakika içinde sinyal varsa onu güncelle, yeni oluşturma
+        val existing = emergencySignalDao.getRecentSignalByUser(currentUserId, System.currentTimeMillis() - rateLimitMs)
+        val signal = if (existing != null) {
+            existing.copy(
+                latitude = lat,
+                longitude = lon,
+                emergency_type = type,
+                battery_level = battery,
+                timestamp = System.currentTimeMillis(),
+                is_synced = false
+            )
+        } else {
+            EmergencySignalEntity(
+                signal_id = UUID.randomUUID().toString(),
+                user_id = currentUserId,
+                user_name = myProfile?.full_name ?: myProfile?.username ?: "Anonim",
+                latitude = lat,
+                longitude = lon,
+                emergency_type = type,
+                battery_level = battery,
+                timestamp = System.currentTimeMillis(),
+                is_synced = false,
+                hop_count = 0,
+                blood_type = myProfile?.blood_type,
+                allergies = myProfile?.allergies,
+                medications = myProfile?.medications,
+                emergency_contact = myProfile?.emergency_contact
+            )
+        }
         saveEmergencySignal(signal)
-        Log.d("YANKI_REPO", "SOS Sinyali yerel veritabanına kaydedildi. Bulut tetikleniyor...")
+        Log.d("YANKI_REPO", "SOS Sinyali yerel veritabanına kaydedildi (${if (existing != null) "güncellendi" else "yeni"}). Bulut tetikleniyor...")
         
         // Önemli: Direkt buluta çıkmayı dene
         triggerImmediateCloudSync()

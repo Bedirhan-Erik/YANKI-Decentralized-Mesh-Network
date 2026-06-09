@@ -36,6 +36,8 @@ async function RegisterUser(call, callback) {
     }
 }
 
+const SOS_RATE_LIMIT_MS = 10 * 60 * 1000; // 10 dakika
+
 async function SendEmergencySignal(call, callback) {
     const signal = call.request;
     console.log(`[ALERT] SOS! Tür: ${signal.emergency_type} - Pil: %${signal.battery_level} - ID: ${signal.signal_id}`);
@@ -60,9 +62,23 @@ async function SendEmergencySignal(call, callback) {
             emergency_contact: signal.emergency_contact || ""
         };
 
-        await db.collection('emergency_signals').doc(signal.signal_id).set(sosData);
+        // Rate-limit: aynı kullanıcının son 10 dakika içinde aktif sinyali varsa onu güncelle
+        const rateLimitThreshold = admin.firestore.Timestamp.fromMillis(Date.now() - SOS_RATE_LIMIT_MS);
+        const recentSnapshot = await db.collection('emergency_signals')
+            .where('user_id', '==', signal.user_id)
+            .where('created_at', '>', rateLimitThreshold)
+            .limit(1)
+            .get();
 
-        console.log(`🚨 SOS Firestore'a işlendi: ${signal.signal_id} (${signal.emergency_type})`);
+        let targetDocId = signal.signal_id;
+        if (!recentSnapshot.empty) {
+            targetDocId = recentSnapshot.docs[0].id;
+            console.log(`⚡ Rate-limit: ${signal.user_id} son 10dk içinde sinyal gönderdi, güncelleniyor: ${targetDocId}`);
+        }
+
+        await db.collection('emergency_signals').doc(targetDocId).set(sosData);
+
+        console.log(`🚨 SOS Firestore'a işlendi: ${targetDocId} (${signal.emergency_type})`);
         callback(null, { success: true, message: "Acil durum sinyali Firebase'e işlendi." });
     } catch (error) {
         console.error("❌ SOS Kayıt Hatası:", error);

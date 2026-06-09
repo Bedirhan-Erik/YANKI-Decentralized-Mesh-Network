@@ -35,4 +35,7 @@ interface EmergencySignalDao {
 
     @Query("SELECT * FROM emergency_signals WHERE user_id = :userId ORDER BY timestamp DESC LIMIT 10")
     fun getMySignalsFlow(userId: String): Flow<List<EmergencySignalEntity>>
+
+    @Query("SELECT * FROM emergency_signals WHERE user_id = :userId AND timestamp > :since ORDER BY timestamp DESC LIMIT 1")
+    suspend fun getRecentSignalByUser(userId: String, since: Long): EmergencySignalEntity?
 }
