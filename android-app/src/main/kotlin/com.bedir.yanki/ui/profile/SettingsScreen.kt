@@ -1,6 +1,7 @@
 package com.bedir.yanki.ui.profile
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -18,10 +19,11 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.navigation.NavController
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.navigation.NavController
 import com.bedir.yanki.ui.theme.*
 import com.bedir.yanki.ui.viewmodel.MeshViewModel
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -30,6 +32,42 @@ fun SettingsScreen(
     viewModel: MeshViewModel = hiltViewModel()
 ) {
     val settings by viewModel.settings.collectAsState()
+    val snackbarHostState = remember { SnackbarHostState() }
+    val scope = rememberCoroutineScope()
+    var showKeyDialog by remember { mutableStateOf(false) }
+
+    val keyAgeDays = remember { viewModel.getKeyAgeDays() }
+    val keyAgeText = when {
+        keyAgeDays < 0L -> "Henüz oluşturulmadı"
+        keyAgeDays == 0L -> "Bugün oluşturuldu"
+        else -> "$keyAgeDays gün önce"
+    }
+
+    if (showKeyDialog) {
+        AlertDialog(
+            onDismissRequest = { showKeyDialog = false },
+            title = { Text("Anahtar Yenile", fontWeight = FontWeight.Bold) },
+            text = { Text("Mevcut Ed25519 anahtar çifti silinecek ve yenisi oluşturulacak. Devam edilsin mi?") },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        showKeyDialog = false
+                        viewModel.regenerateKeys { success ->
+                            scope.launch {
+                                snackbarHostState.showSnackbar(
+                                    if (success) "Anahtar başarıyla yenilendi" else "Anahtar yenilenemedi"
+                                )
+                            }
+                        }
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = YankiGreen)
+                ) { Text("Yenile", color = Color.White) }
+            },
+            dismissButton = {
+                TextButton(onClick = { showKeyDialog = false }) { Text("İptal") }
+            }
+        )
+    }
 
     Scaffold(
         topBar = {
@@ -43,6 +81,7 @@ fun SettingsScreen(
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = YankiDarkBg)
             )
         },
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         containerColor = YankiDarkBg
     ) { padding ->
         Column(
@@ -58,7 +97,7 @@ fun SettingsScreen(
                     icon = Icons.Default.Lock,
                     title = "Android Keystore",
                     subtitle = "Donanım güvenlik modülü",
-                    checked = true, 
+                    checked = true,
                     onCheckedChange = {},
                     enabled = false,
                     showBadge = true,
@@ -66,15 +105,16 @@ fun SettingsScreen(
                 )
                 SettingsSwitchItem(
                     icon = Icons.Default.Settings,
-                    title = "AES-GCM Şifreleme",
-                    subtitle = "Google Tink",
+                    title = "Mesaj İmzalama",
+                    subtitle = "Ed25519 ile gönderilen mesajları imzala",
                     checked = settings["pref_aes_gcm"] ?: true,
                     onCheckedChange = { viewModel.updateSetting("pref_aes_gcm", it) }
                 )
                 SettingsClickItem(
                     icon = Icons.Default.Edit,
                     title = "Anahtar yenile",
-                    subtitle = "Son: 14 gün önce"
+                    subtitle = "Son: $keyAgeText",
+                    onClick = { showKeyDialog = true }
                 )
             }
 
@@ -98,7 +138,7 @@ fun SettingsScreen(
                 SettingsSwitchItem(
                     icon = Icons.Default.CheckCircle,
                     title = "Güvenilir cihaz modu",
-                    subtitle = "Yalnızca is_trusted kişiler",
+                    subtitle = "Yalnızca güvenilir kişilerden mesaj al",
                     checked = settings["pref_trusted_only"] ?: false,
                     onCheckedChange = { viewModel.updateSetting("pref_trusted_only", it) }
                 )
@@ -110,14 +150,14 @@ fun SettingsScreen(
                 SettingsSwitchItem(
                     icon = Icons.Default.Notifications,
                     title = "Acil sinyal uyarıları",
-                    subtitle = "Yeni SOS geldiğinde",
+                    subtitle = "Yeni SOS geldiğinde bildirim gönder",
                     checked = settings["pref_sos_notifications"] ?: true,
                     onCheckedChange = { viewModel.updateSetting("pref_sos_notifications", it) }
                 )
                 SettingsSwitchItem(
                     icon = Icons.Default.LocationOn,
                     title = "Yeni cihaz keşfi",
-                    subtitle = "Mesh'e yeni katılan",
+                    subtitle = "Mesh'e yeni komşu katıldığında bildirim gönder",
                     checked = settings["pref_discovery_notifications"] ?: false,
                     onCheckedChange = { viewModel.updateSetting("pref_discovery_notifications", it) }
                 )
@@ -218,11 +258,13 @@ fun SettingsSwitchItem(
 fun SettingsClickItem(
     icon: ImageVector,
     title: String,
-    subtitle: String
+    subtitle: String,
+    onClick: () -> Unit = {}
 ) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
+            .clickable { onClick() }
             .padding(16.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {

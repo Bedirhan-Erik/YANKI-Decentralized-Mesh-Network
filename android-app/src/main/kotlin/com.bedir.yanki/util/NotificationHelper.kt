@@ -90,6 +90,17 @@ class NotificationHelper @Inject constructor(
         notificationManager.notify(signal.signal_id.hashCode(), notification)
     }
 
+    fun showDiscoveryNotification(neighborName: String) {
+        val notification = NotificationCompat.Builder(context, CHANNEL_BULLETIN)
+            .setSmallIcon(android.R.drawable.stat_notify_sync)
+            .setContentTitle("Yeni Komşu Bulundu")
+            .setContentText("$neighborName mesh ağına katıldı")
+            .setPriority(NotificationCompat.PRIORITY_DEFAULT)
+            .setAutoCancel(true)
+            .build()
+        notificationManager.notify(neighborName.hashCode(), notification)
+    }
+
     companion object {
         const val CHANNEL_SOS = "yanki_sos_channel"
         const val CHANNEL_BULLETIN = "yanki_bulletin_channel"

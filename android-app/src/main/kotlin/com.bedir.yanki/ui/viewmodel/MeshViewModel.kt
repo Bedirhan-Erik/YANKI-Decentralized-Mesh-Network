@@ -273,6 +273,17 @@ class MeshViewModel @Inject constructor(
             onComplete()
         }
     }
+
+    fun regenerateKeys(onComplete: (Boolean) -> Unit) {
+        viewModelScope.launch(Dispatchers.IO) {
+            val success = repository.regenerateKeys()
+            kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main) {
+                onComplete(success)
+            }
+        }
+    }
+
+    fun getKeyAgeDays(): Long = repository.getKeyAgeDays()
 }
 
 data class MeshUiState(

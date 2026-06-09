@@ -218,13 +218,15 @@ class YankiRepository @Inject constructor(
 
             // Mesajı imzala
             var signature: ByteArray? = null
-            try {
-                val privateKey = getMySecretKey()
-                if (privateKey.isNotEmpty()) {
-                    signature = securityManager.signData(messageBytes, privateKey)
+            if (sharedPreferences.getBoolean("pref_aes_gcm", true)) {
+                try {
+                    val privateKey = getMySecretKey()
+                    if (privateKey.isNotEmpty()) {
+                        signature = securityManager.signData(messageBytes, privateKey)
+                    }
+                } catch (t: Throwable) {
+                    Log.e("YANKI_REPO", "Mesaj imzalama hatası: ${t.message}")
                 }
-            } catch (t: Throwable) {
-                Log.e("YANKI_REPO", "Mesaj imzalama hatası: ${t.message}")
             }
 
             val myProfile = userDao.getUserById(currentUserId)
@@ -316,6 +318,11 @@ class YankiRepository @Inject constructor(
         try {
             val isForMe = incomingMessage.receiver_id == currentUserId ||
                 (incomingMessage.receiver_id.length < 36 && currentUserId.startsWith(incomingMessage.receiver_id))
+
+            if (sharedPreferences.getBoolean("pref_trusted_only", false)) {
+                val sender = userDao.getUserById(incomingMessage.sender_id)
+                if (sender == null || !sender.is_trusted) return
+            }
 
             val alreadySeen = messageDao.isMessageExists(incomingMessage.msg_id)
             if (alreadySeen) {
@@ -423,8 +430,9 @@ class YankiRepository @Inject constructor(
         val signalToStore = signal.copy(hop_count = signal.hop_count + 1)
         emergencySignalDao.insertSignal(signalToStore)
         
-        // SOS bildirimi göster
-        notificationHelper.showSOSNotification(signal)
+        if (sharedPreferences.getBoolean("pref_sos_notifications", true)) {
+            notificationHelper.showSOSNotification(signal)
+        }
 
         // Sinyali buluta hemen göndermeyi dene
         triggerImmediateCloudSync()
@@ -631,6 +639,9 @@ class YankiRepository @Inject constructor(
                 is_trusted = false
             )
             userDao.insertOrUpdateUser(newUser)
+            if (sharedPreferences.getBoolean("pref_discovery_notifications", false)) {
+                notificationHelper.showDiscoveryNotification("Bilinmeyen Komşu ($neighborId)")
+            }
         }
         
         // Kimlik duyurusu (Identity Announcement) yap: Kendi profilimizi yeni bulduğumuz komşuya gönder
@@ -714,6 +725,36 @@ class YankiRepository @Inject constructor(
 
     fun getPreference(key: String, defaultValue: Boolean): Boolean {
         return sharedPreferences.getBoolean(key, defaultValue)
+    }
+
+    suspend fun regenerateKeys(): Boolean {
+        return try {
+            val keyPair = securityManager.generateUserKeyPair() ?: return false
+            val newSecret = keyPair.secretKey.asBytes
+            val newPublic = keyPair.publicKey.asBytes
+            sharedPreferences.edit {
+                putString("secret_key", java.util.Base64.getEncoder().encodeToString(newSecret))
+                putString("public_key", java.util.Base64.getEncoder().encodeToString(newPublic))
+                putLong("key_generated_at", System.currentTimeMillis())
+            }
+            val user = userDao.getUserById(currentUserId)
+            if (user != null) {
+                val updatedUser = user.copy(public_key = newPublic)
+                userDao.insertOrUpdateUser(updatedUser)
+                broadcastIdentityUpdate(updatedUser)
+            }
+            Log.d("YANKI_REPO", "Anahtar çifti yenilendi.")
+            true
+        } catch (e: Exception) {
+            Log.e("YANKI_REPO", "Anahtar yenileme hatası: ${e.message}")
+            false
+        }
+    }
+
+    fun getKeyAgeDays(): Long {
+        val generatedAt = sharedPreferences.getLong("key_generated_at", 0L)
+        if (generatedAt == 0L) return -1L
+        return (System.currentTimeMillis() - generatedAt) / (1000L * 60 * 60 * 24)
     }
 
     fun getSettingsFlow(): Flow<Map<String, Boolean>> = callbackFlow {
