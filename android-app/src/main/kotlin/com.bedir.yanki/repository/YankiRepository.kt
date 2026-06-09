@@ -19,6 +19,8 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import android.content.Context
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.launch
@@ -89,7 +91,14 @@ class YankiRepository @Inject constructor(
     companion object {
         const val STATUS_RECEIVED = 0
         const val STATUS_RELAYED = 1
+        const val ACK_PENDING = 0
+        const val ACK_DELIVERED = 1
+        const val ACK_FAILED = 2
+        private const val MAX_RETRIES = 3
+        private const val RETRY_DELAY_MS = 12_000L
     }
+
+    private val repoScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
 
     val currentUserId: String
         get() = sharedPreferences.getString("user_id", null) ?: "GUEST"
@@ -234,7 +243,8 @@ class YankiRepository @Inject constructor(
 
             saveMessage(messageEntity)
             Log.d("YANKI_REPO", "Mesaj yerel veritabanına kaydedildi: ${messageEntity.msg_id}")
-            
+            scheduleRetryCheck(messageEntity.msg_id, messageEntity)
+
             // --- YENİ: İnternet Varsa Hemen Buluta Gönder ---
             triggerImmediateCloudSync()
 
@@ -329,6 +339,8 @@ class YankiRepository @Inject constructor(
                 (incomingMessage.receiver_id.length < 36 && currentUserId.startsWith(incomingMessage.receiver_id))
             if (isForMe) {
                 messageDao.insertMessage(incomingMessage.copy(status = STATUS_RECEIVED))
+                // Gönderene ACK yolla
+                repoScope.launch { sendAckForMessage(incomingMessage.msg_id, incomingMessage.sender_id) }
             } else {
                 if (incomingMessage.ttl > 0) {
                     val relayedMessage = incomingMessage.copy(
@@ -522,6 +534,10 @@ class YankiRepository @Inject constructor(
                         parsedPayload.signals.forEach { signal -> handleEmergencySignal(signal) }
                         parsedPayload.messages.forEach { message -> handleIncomingMeshMessage(message) }
                         parsedPayload.bulletins.forEach { bulletin -> handleIncomingBulletin(bulletin) }
+                        parsedPayload.acks.forEach { msgId ->
+                            messageDao.updateAckStatus(msgId, ACK_DELIVERED)
+                            Log.d("YANKI_ACK", "✓✓ Teslim onayı alındı: $msgId")
+                        }
                     }
 
                     // Mesh'ten yeni veri geldi, eğer internet varsa hemen buluta gönder
@@ -530,6 +546,48 @@ class YankiRepository @Inject constructor(
                     }
                 } catch (e: Exception) {
                     Log.e("YANKI_MESH", "Payload işlenirken hata oluştu: ${e.message}")
+                }
+            }
+        }
+    }
+
+    private suspend fun sendAckForMessage(originalMsgId: String, originalSenderId: String) {
+        val senderUser = userDao.getUserById(originalSenderId)
+        val senderMac = senderUser?.last_mac ?: return
+        if (senderMac.isBlank()) return
+        val ackPayload = ProtoMapper.packageAck(originalMsgId, currentUserId)
+        bleMeshManager.sendPayloadToNeighbor(senderMac, ackPayload)
+        Log.d("YANKI_ACK", "ACK gönderildi: $originalMsgId → $senderMac")
+    }
+
+    private fun scheduleRetryCheck(msgId: String, originalMessage: MessageEntity) {
+        repoScope.launch {
+            repeat(MAX_RETRIES) { attempt ->
+                delay(RETRY_DELAY_MS)
+                val msg = messageDao.getMessageById(msgId) ?: return@launch
+                if (msg.ack_status == ACK_DELIVERED) return@launch
+                if (msg.ack_status == ACK_FAILED) return@launch
+
+                messageDao.incrementRetryCount(msgId)
+                Log.d("YANKI_ACK", "Retry ${attempt + 1}/$MAX_RETRIES: $msgId yeniden gönderiliyor")
+
+                val neighbors = userDao.getAllUsers()
+                val currentTime = System.currentTimeMillis()
+                neighbors.forEach { neighbor ->
+                    if (currentTime - neighbor.last_seen < 300_000L && !neighbor.last_mac.isNullOrBlank()) {
+                        val payload = ProtoMapper.packageAll(emptyList(), listOf(originalMessage))
+                        if (payload.size < 500) {
+                            bleMeshManager.sendPayloadToNeighbor(neighbor.last_mac, payload)
+                        }
+                    }
+                }
+
+                if (attempt == MAX_RETRIES - 1) {
+                    val finalMsg = messageDao.getMessageById(msgId) ?: return@launch
+                    if (finalMsg.ack_status != ACK_DELIVERED) {
+                        messageDao.updateAckStatus(msgId, ACK_FAILED)
+                        Log.d("YANKI_ACK", "✗ Mesaj iletilemedi (max retry): $msgId")
+                    }
                 }
             }
         }

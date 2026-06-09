@@ -32,9 +32,9 @@ message Message {
 }
 
 message EmergencySignal {
-  string signal_id = 1; // String formatına çekildi (UUID)
+  string signal_id = 1;
   string user_id = 2;
-  string user_name = 12; // Yeni alan: Kullanıcı ismi
+  string user_name = 12;
   double latitude = 3;
   double longitude = 4;
   string emergency_type = 5;
@@ -44,6 +44,13 @@ message EmergencySignal {
   string blood_type = 9;
   string allergies = 10;
   string medications = 11;
+  string emergency_contact = 13;
+}
+
+// Mesaj teslim onayı (ACK)
+message AckMessage {
+  string msg_id = 1;      // Onaylanan orijinal mesajın ID'si
+  string receiver_id = 2; // Mesajı alan kişinin ID'si
 }
 
 message BulletinPost {
@@ -64,6 +71,7 @@ message MeshPayload {
   repeated EmergencySignal signals = 2;
   repeated User users = 3;
   repeated BulletinPost bulletins = 4;
+  repeated AckMessage acks = 5;
 }
 
 service YankiSyncService {

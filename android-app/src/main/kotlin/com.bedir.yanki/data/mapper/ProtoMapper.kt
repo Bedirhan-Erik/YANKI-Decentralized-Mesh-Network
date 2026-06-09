@@ -8,6 +8,7 @@ import com.bedir.yanki.Yanki.Message
 import com.bedir.yanki.Yanki.EmergencySignal
 import com.bedir.yanki.Yanki.BulletinPost
 import com.bedir.yanki.Yanki.MeshPayload
+import com.bedir.yanki.Yanki.AckMessage
 import com.google.protobuf.ByteString
 import android.util.Log
 
@@ -136,6 +137,17 @@ object ProtoMapper {
         return toProtoSOS(entity).toByteArray()
     }
 
+    fun packageAck(msgId: String, receiverId: String): ByteArray {
+        val ack = AckMessage.newBuilder()
+            .setMsgId(msgId)
+            .setReceiverId(receiverId)
+            .build()
+        return MeshPayload.newBuilder()
+            .addAcks(ack)
+            .build()
+            .toByteArray()
+    }
+
     fun packageSOSOnly(signals: List<EmergencySignalEntity>): ByteArray {
         val payloadBuilder = MeshPayload.newBuilder()
         signals.forEach { entity ->
@@ -254,7 +266,9 @@ object ProtoMapper {
                 )
             }
 
-            ParsedPayload(receivedSignals, receivedMessages, receivedUsers, receivedBulletins)
+            val receivedAcks = payload.acksList.map { it.msgId }
+
+            ParsedPayload(receivedSignals, receivedMessages, receivedUsers, receivedBulletins, receivedAcks)
         } catch (e: Exception) {
             Log.e("YANKI_MAPPER", "Gelen veri çözülemedi: ${e.message}")
             null
@@ -266,5 +280,6 @@ data class ParsedPayload(
     val signals: List<EmergencySignalEntity>,
     val messages: List<MessageEntity>,
     val users: List<UserEntity> = emptyList(),
-    val bulletins: List<BulletinEntity> = emptyList()
+    val bulletins: List<BulletinEntity> = emptyList(),
+    val acks: List<String> = emptyList()
 )

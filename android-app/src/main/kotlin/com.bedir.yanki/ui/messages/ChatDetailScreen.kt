@@ -141,7 +141,8 @@ fun ChatDetailScreen(
                             content = contentString,
                             isFromMe = isMe,
                             timestamp = msg.timestamp,
-                            initials = if (!isMe) initials else ""
+                            initials = if (!isMe) initials else "",
+                            ackStatus = msg.ack_status
                         )
                     }
                 }
@@ -166,7 +167,7 @@ fun ChatDetailScreen(
 }
 
 @Composable
-fun ChatBubble(content: String, isFromMe: Boolean, timestamp: Long, initials: String = "") {
+fun ChatBubble(content: String, isFromMe: Boolean, timestamp: Long, initials: String = "", ackStatus: Int = 0) {
     val time = remember(timestamp) {
         SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date(timestamp))
     }
@@ -217,12 +218,29 @@ fun ChatBubble(content: String, isFromMe: Boolean, timestamp: Long, initials: St
                 )
             }
             Spacer(modifier = Modifier.height(3.dp))
-            Text(
-                text = time,
-                color = Color(0xFF5A6478),
-                fontSize = 11.sp,
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier.padding(horizontal = 4.dp)
-            )
+            ) {
+                Text(text = time, color = Color(0xFF5A6478), fontSize = 11.sp)
+                if (isFromMe) {
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text(
+                        text = when (ackStatus) {
+                            1 -> "✓✓"
+                            2 -> "✗"
+                            else -> "✓"
+                        },
+                        color = when (ackStatus) {
+                            1 -> YankiGreen
+                            2 -> Color(0xFFE74C3C)
+                            else -> Color(0xFF5A6478)
+                        },
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            }
         }
     }
 }

@@ -35,5 +35,17 @@ interface MessageDao {
 
     @Query("SELECT * FROM messages WHERE (sender_id = :userId OR receiver_id = :userId) ORDER BY timestamp DESC LIMIT 1")
     fun getLastMessageWithUser(userId: String): Flow<MessageEntity?>
+
+    @Query("SELECT * FROM messages WHERE msg_id = :msgId LIMIT 1")
+    suspend fun getMessageById(msgId: String): MessageEntity?
+
+    @Query("UPDATE messages SET ack_status = :status WHERE msg_id = :msgId")
+    suspend fun updateAckStatus(msgId: String, status: Int)
+
+    @Query("UPDATE messages SET retry_count = retry_count + 1 WHERE msg_id = :msgId")
+    suspend fun incrementRetryCount(msgId: String)
+
+    @Query("SELECT * FROM messages WHERE ack_status = 0 AND retry_count < 3 AND sender_id = :myId AND is_synced = 0 ORDER BY timestamp DESC")
+    suspend fun getPendingAckMessages(myId: String): List<MessageEntity>
 }
 

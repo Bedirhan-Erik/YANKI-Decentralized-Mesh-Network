@@ -59,12 +59,19 @@ message BulletinPost {
   int32 ttl = 9;
 }
 
+// Mesaj teslim onayı (ACK)
+message AckMessage {
+  string msg_id = 1;
+  string receiver_id = 2;
+}
+
 // Wi-Fi Aware ve Mesh için toplu paket taşıyıcı
 message MeshPayload {
   repeated Message messages = 1;
   repeated EmergencySignal signals = 2;
   repeated User users = 3;
   repeated BulletinPost bulletins = 4;
+  repeated AckMessage acks = 5;
 }
 
 service YankiSyncService {
