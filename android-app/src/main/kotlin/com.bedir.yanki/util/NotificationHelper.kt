@@ -23,8 +23,14 @@ class NotificationHelper @Inject constructor(
         createChannels()
     }
 
+    private fun mainPendingIntent(requestCode: Int = 0): PendingIntent {
+        val intent = Intent(context, MainActivity::class.java).apply {
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+        }
+        return PendingIntent.getActivity(context, requestCode, intent, PendingIntent.FLAG_IMMUTABLE)
+    }
+
     private fun createChannels() {
-        // SOS Kanalı
         val sosChannel = NotificationChannel(
             CHANNEL_SOS,
             "Acil Durum Sinyalleri (SOS)",
@@ -35,7 +41,6 @@ class NotificationHelper @Inject constructor(
             enableVibration(true)
         }
 
-        // Duyuru Kanalı
         val bulletinChannel = NotificationChannel(
             CHANNEL_BULLETIN,
             "Duyuru Panosu",
@@ -44,17 +49,20 @@ class NotificationHelper @Inject constructor(
             description = "Yeni eklenen ilan ve duyuruları bildirir"
         }
 
+        val discoveryChannel = NotificationChannel(
+            CHANNEL_DISCOVERY,
+            "Yeni Komşu Keşfi",
+            NotificationManager.IMPORTANCE_LOW
+        ).apply {
+            description = "Mesh ağına yeni cihaz katıldığında bildirir"
+        }
+
         notificationManager.createNotificationChannel(sosChannel)
         notificationManager.createNotificationChannel(bulletinChannel)
+        notificationManager.createNotificationChannel(discoveryChannel)
     }
 
     fun showBulletinNotification(bulletin: BulletinEntity) {
-        val intent = Intent(context, MainActivity::class.java).apply {
-            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
-            // Opsiyonel: Direkt duyuru sayfasına yönlendirme için extra eklenebilir
-        }
-        val pendingIntent = PendingIntent.getActivity(context, 0, intent, PendingIntent.FLAG_IMMUTABLE)
-
         val title = when (bulletin.type) {
             "ALERT" -> "⚠️ ÖNEMLİ UYARI: ${bulletin.sender_name}"
             "NEED" -> "🆘 İhtiyaç Bildirimi: ${bulletin.sender_name}"
@@ -67,36 +75,35 @@ class NotificationHelper @Inject constructor(
             .setContentText(bulletin.content)
             .setPriority(NotificationCompat.PRIORITY_DEFAULT)
             .setAutoCancel(true)
-            .setContentIntent(pendingIntent)
+            .setContentIntent(mainPendingIntent(0))
             .build()
 
         notificationManager.notify(bulletin.post_id.hashCode(), notification)
     }
 
     fun showSOSNotification(signal: EmergencySignalEntity) {
-        val intent = Intent(context, MainActivity::class.java)
-        val pendingIntent = PendingIntent.getActivity(context, 1, intent, PendingIntent.FLAG_IMMUTABLE)
-
+        val senderName = signal.user_name?.takeIf { it.isNotBlank() } ?: "Bilinmeyen"
         val notification = NotificationCompat.Builder(context, CHANNEL_SOS)
             .setSmallIcon(android.R.drawable.stat_sys_warning)
             .setContentTitle("🚨 YAKINDA SOS SİNYALİ!")
-            .setContentText("${signal.emergency_type} yardımı gerekiyor!")
+            .setContentText("$senderName: ${signal.emergency_type} yardımı gerekiyor!")
             .setPriority(NotificationCompat.PRIORITY_HIGH)
             .setCategory(NotificationCompat.CATEGORY_ALARM)
             .setAutoCancel(true)
-            .setContentIntent(pendingIntent)
+            .setContentIntent(mainPendingIntent(1))
             .build()
 
         notificationManager.notify(signal.signal_id.hashCode(), notification)
     }
 
     fun showDiscoveryNotification(neighborName: String) {
-        val notification = NotificationCompat.Builder(context, CHANNEL_BULLETIN)
+        val notification = NotificationCompat.Builder(context, CHANNEL_DISCOVERY)
             .setSmallIcon(android.R.drawable.stat_notify_sync)
             .setContentTitle("Yeni Komşu Bulundu")
             .setContentText("$neighborName mesh ağına katıldı")
-            .setPriority(NotificationCompat.PRIORITY_DEFAULT)
+            .setPriority(NotificationCompat.PRIORITY_LOW)
             .setAutoCancel(true)
+            .setContentIntent(mainPendingIntent(2))
             .build()
         notificationManager.notify(neighborName.hashCode(), notification)
     }
@@ -104,5 +111,6 @@ class NotificationHelper @Inject constructor(
     companion object {
         const val CHANNEL_SOS = "yanki_sos_channel"
         const val CHANNEL_BULLETIN = "yanki_bulletin_channel"
+        const val CHANNEL_DISCOVERY = "yanki_discovery_channel"
     }
 }

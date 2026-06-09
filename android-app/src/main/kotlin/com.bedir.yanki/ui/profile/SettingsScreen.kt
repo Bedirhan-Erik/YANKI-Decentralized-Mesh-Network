@@ -155,6 +155,13 @@ fun SettingsScreen(
                     onCheckedChange = { viewModel.updateSetting("pref_sos_notifications", it) }
                 )
                 SettingsSwitchItem(
+                    icon = Icons.Default.Info,
+                    title = "Duyuru bildirimleri",
+                    subtitle = "Mesh'ten yeni ilan geldiğinde bildirim gönder",
+                    checked = settings["pref_bulletin_notifications"] ?: true,
+                    onCheckedChange = { viewModel.updateSetting("pref_bulletin_notifications", it) }
+                )
+                SettingsSwitchItem(
                     icon = Icons.Default.LocationOn,
                     title = "Yeni cihaz keşfi",
                     subtitle = "Mesh'e yeni komşu katıldığında bildirim gönder",

@@ -84,8 +84,9 @@ class YankiRepository @Inject constructor(
             bulletinDao.insertPost(relayedPost)
             Log.d("YANKI_BULLETIN", "Yeni ilan ağdan alındı ve kaydedildi: ${post.content}")
             
-            // TODO: Burada bildirim gönderilecek
-            notificationHelper.showBulletinNotification(relayedPost)
+            if (sharedPreferences.getBoolean("pref_bulletin_notifications", true)) {
+                notificationHelper.showBulletinNotification(relayedPost)
+            }
         }
     }
     companion object {
@@ -776,6 +777,7 @@ class YankiRepository @Inject constructor(
             "pref_ble_mode" to sharedPreferences.getBoolean("pref_ble_mode", true),
             "pref_trusted_only" to sharedPreferences.getBoolean("pref_trusted_only", false),
             "pref_sos_notifications" to sharedPreferences.getBoolean("pref_sos_notifications", true),
+            "pref_bulletin_notifications" to sharedPreferences.getBoolean("pref_bulletin_notifications", true),
             "pref_discovery_notifications" to sharedPreferences.getBoolean("pref_discovery_notifications", false),
             "pref_aes_gcm" to sharedPreferences.getBoolean("pref_aes_gcm", true)
         )
