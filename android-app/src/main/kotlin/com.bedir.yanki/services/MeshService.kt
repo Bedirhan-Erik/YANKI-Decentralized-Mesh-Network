@@ -44,7 +44,13 @@ class MeshService : Service() {
         // Ayarları dinle ve motoru dinamik olarak yönet
         observeSettings()
 
-        return START_STICKY
+        return START_NOT_STICKY
+    }
+
+    override fun onTaskRemoved(rootIntent: Intent?) {
+        super.onTaskRemoved(rootIntent)
+        stopForeground(STOP_FOREGROUND_REMOVE)
+        stopSelf()
     }
 
     private fun observeSettings() {
