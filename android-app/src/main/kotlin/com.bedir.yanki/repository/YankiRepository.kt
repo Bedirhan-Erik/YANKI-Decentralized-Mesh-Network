@@ -94,8 +94,8 @@ class YankiRepository @Inject constructor(
         const val ACK_PENDING = 0
         const val ACK_DELIVERED = 1
         const val ACK_FAILED = 2
-        private const val MAX_RETRIES = 3
-        private const val RETRY_DELAY_MS = 12_000L
+        private const val MAX_RETRIES = 5
+        private const val RETRY_DELAY_MS = 15_000L
     }
 
     private val repoScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
@@ -314,8 +314,15 @@ class YankiRepository @Inject constructor(
 
     suspend fun handleIncomingMeshMessage(incomingMessage: MessageEntity) {
         try {
+            val isForMe = incomingMessage.receiver_id == currentUserId ||
+                (incomingMessage.receiver_id.length < 36 && currentUserId.startsWith(incomingMessage.receiver_id))
+
             val alreadySeen = messageDao.isMessageExists(incomingMessage.msg_id)
-            if (alreadySeen) return
+            if (alreadySeen) {
+                // ACK kaybedilmiş olabilir — göndereni bilgilendirmek için tekrar yolla
+                if (isForMe) repoScope.launch { sendAckForMessage(incomingMessage.msg_id, incomingMessage.sender_id) }
+                return
+            }
 
             // Mesaj imzasını doğrula
             val sender = userDao.getUserById(incomingMessage.sender_id)
@@ -334,9 +341,6 @@ class YankiRepository @Inject constructor(
                 }
             }
 
-            // receiver_id eski 4-char prefix olabilir, tam UUID ile prefix karşılaştırması yap
-            val isForMe = incomingMessage.receiver_id == currentUserId ||
-                (incomingMessage.receiver_id.length < 36 && currentUserId.startsWith(incomingMessage.receiver_id))
             if (isForMe) {
                 messageDao.insertMessage(incomingMessage.copy(status = STATUS_RECEIVED))
                 // Gönderene ACK yolla
@@ -595,10 +599,22 @@ class YankiRepository @Inject constructor(
 
     suspend fun handleNeighborFound(neighborId: String, neighborMacAddress: String, rssi: Int) {
         val currentTime = System.currentTimeMillis()
-        val existingUser = userDao.getUserById(neighborId)
+
+        // Exact match
+        var existingUser = userDao.getUserById(neighborId)
+
+        // neighborId kısa BLE prefix'i olabilir (örn. "471a") — tam UUID'e sahip kullanıcıyı bul
+        if (existingUser == null && neighborId.length < 36) {
+            existingUser = userDao.getAllUsers().firstOrNull { it.user_id.startsWith(neighborId) }
+        }
 
         if (existingUser != null) {
-            userDao.updateLastSeen(userId = neighborId, timestamp = currentTime, macAddress = neighborMacAddress, rssi = rssi)
+            userDao.updateLastSeen(
+                userId = existingUser.user_id,
+                timestamp = currentTime,
+                macAddress = neighborMacAddress,
+                rssi = rssi
+            )
         } else {
             val newUser = UserEntity(
                 user_id = neighborId,
