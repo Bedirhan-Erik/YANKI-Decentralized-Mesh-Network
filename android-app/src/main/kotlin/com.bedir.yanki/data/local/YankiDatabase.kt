@@ -13,7 +13,7 @@ import com.bedir.yanki.data.local.entity.BulletinEntity
 
 @Database(
     entities = [UserEntity::class, MessageEntity::class, EmergencySignalEntity::class, BulletinEntity::class],
-    version = 7,
+    version = 8,
     exportSchema = true
 )
 abstract class YankiDatabase : RoomDatabase() {
