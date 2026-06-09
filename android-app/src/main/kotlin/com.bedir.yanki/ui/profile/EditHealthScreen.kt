@@ -53,16 +53,20 @@ fun EditHealthScreen(
 ) {
     val currentUser by viewModel.currentUser.collectAsState()
     var value by remember { mutableStateOf("") }
+    var initialized by remember { mutableStateOf(false) }
     val bloodTypes = listOf("A+", "A-", "B+", "B-", "AB+", "AB-", "0+", "0-")
 
     LaunchedEffect(currentUser) {
-        currentUser?.let {
-            value = when (type) {
-                "blood_type" -> it.blood_type ?: ""
-                "allergies" -> it.allergies ?: ""
-                "medications" -> it.medications ?: ""
-                "emergency_contact" -> it.emergency_contact ?: ""
-                else -> ""
+        if (!initialized) {
+            currentUser?.let {
+                value = when (type) {
+                    "blood_type" -> it.blood_type ?: ""
+                    "allergies" -> it.allergies ?: ""
+                    "medications" -> it.medications ?: ""
+                    "emergency_contact" -> it.emergency_contact ?: ""
+                    else -> ""
+                }
+                initialized = true
             }
         }
     }
