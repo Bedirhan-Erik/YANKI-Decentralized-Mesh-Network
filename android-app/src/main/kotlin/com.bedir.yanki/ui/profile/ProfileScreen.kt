@@ -13,6 +13,9 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -30,6 +33,83 @@ import com.bedir.yanki.ui.viewmodel.MeshViewModel
 @Composable
 fun ProfileScreen(navController: NavController, viewModel: MeshViewModel) {
     val currentUser by viewModel.currentUser.collectAsState()
+    var showLogoutDialog by remember { mutableStateOf(false) }
+    var showResetDialog by remember { mutableStateOf(false) }
+
+    fun navigateToWelcome() {
+        navController.navigate(Screen.Welcome.route) {
+            popUpTo(0) { inclusive = true }
+        }
+    }
+
+    // --- ÇIKIŞ ONAYI DİALOGU ---
+    if (showLogoutDialog) {
+        AlertDialog(
+            onDismissRequest = { showLogoutDialog = false },
+            title = { Text("Çıkış Yap", fontWeight = FontWeight.Bold) },
+            text = {
+                Text("Ne yapmak istiyorsunuz?")
+            },
+            confirmButton = {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Button(
+                        onClick = {
+                            showLogoutDialog = false
+                            viewModel.logout { navigateToWelcome() }
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = ButtonDefaults.buttonColors(containerColor = YankiDarkBg)
+                    ) {
+                        Text("Oturumu Kapat", color = Color.White)
+                    }
+                    OutlinedButton(
+                        onClick = {
+                            showLogoutDialog = false
+                            showResetDialog = true
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = ButtonDefaults.outlinedButtonColors(contentColor = Color.Red)
+                    ) {
+                        Text("Cihazı Sıfırla (Tüm veriyi sil)")
+                    }
+                    TextButton(
+                        onClick = { showLogoutDialog = false },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text("İptal", color = Color.Gray)
+                    }
+                }
+            },
+            dismissButton = {}
+        )
+    }
+
+    // --- SIFIRLAMA ONAYI DİALOGU ---
+    if (showResetDialog) {
+        AlertDialog(
+            onDismissRequest = { showResetDialog = false },
+            title = { Text("Cihazı Sıfırla", fontWeight = FontWeight.Bold, color = Color.Red) },
+            text = {
+                Text("Tüm mesajlar, kişiler ve hesap bilgileri kalıcı olarak silinecek. Bu işlem geri alınamaz.")
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        showResetDialog = false
+                        viewModel.clearAllData { navigateToWelcome() }
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = Color.Red)
+                ) {
+                    Text("Evet, Sıfırla", color = Color.White)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showResetDialog = false }) {
+                    Text("İptal")
+                }
+            }
+        )
+    }
 
     Column(
         modifier = Modifier
@@ -143,17 +223,11 @@ fun ProfileScreen(navController: NavController, viewModel: MeshViewModel) {
             ProfileMenuItem(
                 icon = Icons.Default.Warning,
                 title = "Cihazı sıfırla",
-                subtitle = "Tüm veriler silinir",
+                subtitle = "Tüm veriler kalıcı olarak silinir",
                 iconBg = Color(0xFFFADBD8),
                 iconColor = Color.Red,
                 titleColor = Color.Red,
-                onClick = { 
-                    viewModel.clearAllData {
-                        navController.navigate(Screen.Welcome.route) {
-                            popUpTo(0) { inclusive = true }
-                        }
-                    }
-                }
+                onClick = { showResetDialog = true }
             )
 
             Spacer(modifier = Modifier.height(24.dp))
@@ -161,15 +235,9 @@ fun ProfileScreen(navController: NavController, viewModel: MeshViewModel) {
             ProfileMenuItem(
                 icon = Icons.AutoMirrored.Filled.ExitToApp,
                 title = "Çıkış Yap",
-                subtitle = "Hesaptan çıkış yapar",
+                subtitle = "Oturumu kapat veya cihazı sıfırla",
                 iconBg = YankiDarkBg,
-                onClick = { 
-                    viewModel.logout {
-                        navController.navigate(Screen.Welcome.route) {
-                            popUpTo(0) { inclusive = true }
-                        }
-                    }
-                }
+                onClick = { showLogoutDialog = true }
             )
         }
     }
