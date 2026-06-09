@@ -550,7 +550,9 @@
         }
 
         const pil = d.battery_level != null ? `%${d.battery_level}` : "–";
-        const hop = d.mesh_hops != null ? d.mesh_hops : "0";
+        const hopSayi = d.mesh_hops != null ? Number(d.mesh_hops) : 0;
+        const hop = hopSayi === 0 ? "Direkt" : `${hopSayi} cihaz`;
+        const hopRenk = hopSayi === 0 ? "#27ae60" : hopSayi <= 2 ? "#e67e22" : "#e74c3c";
         const durum = durumuBilgisi(d.emergency_type);
         const kanGrubu = d.blood_type || "–";
         const alerji = d.allergies || "–";
@@ -565,7 +567,7 @@
           <td>${lat != null ? lat.toFixed(4) : "–"}, ${lon != null ? lon.toFixed(4) : "–"}</td>
           <td class="name-col">${isimSoyisim}${saglikVar ? ' <span style="color:#c9952b;font-size:11px;" title="Sağlık bilgisi mevcut">🩺</span>' : ''}</td>
           <td><span class="badge ${durum.cls}">${durum.tr}</span></td>
-          <td>🔋 ${pil} | 📡 ${hop} hop</td>
+          <td>🔋 ${pil} | <span style="color:${hopRenk};font-weight:bold;">📡 ${hop}</span></td>
         `;
         tbody.appendChild(tr);
 
@@ -576,7 +578,7 @@
               <strong>👤 ${isimSoyisim}</strong><br>
               <span style="color: #b91c1c; font-weight: bold;">🚨 ${durum.tr}</span><br>
               <hr style="margin: 5px 0; border: 0; border-top: 1px solid #eee;">
-              🔋 Pil: <strong>${pil}</strong> &nbsp; 📡 <strong>${hop} hop</strong><br>
+              🔋 Pil: <strong>${pil}</strong> &nbsp; 📡 <strong style="color:${hopRenk}">${hop}</strong>${hopSayi > 0 ? ` <small style="color:#888">(${hopSayi} ara cihaz)</small>` : ''}<br>
               🕒 ${tarih} - ${saat}
               <hr style="margin: 5px 0; border: 0; border-top: 1px solid #eee;">
               🩸 Kan Grubu: <strong>${kanGrubu}</strong><br>

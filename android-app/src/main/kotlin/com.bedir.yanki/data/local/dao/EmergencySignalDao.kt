@@ -5,6 +5,7 @@ import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import com.bedir.yanki.data.local.entity.EmergencySignalEntity
+import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface EmergencySignalDao {
@@ -28,4 +29,10 @@ interface EmergencySignalDao {
 
     @Query("DELETE FROM emergency_signals WHERE timestamp < :threshold")
     suspend fun deleteOldSignals(threshold: Long)
+
+    @Query("SELECT * FROM emergency_signals ORDER BY timestamp DESC")
+    fun getAllSignalsFlow(): Flow<List<EmergencySignalEntity>>
+
+    @Query("SELECT * FROM emergency_signals WHERE user_id = :userId ORDER BY timestamp DESC LIMIT 10")
+    fun getMySignalsFlow(userId: String): Flow<List<EmergencySignalEntity>>
 }

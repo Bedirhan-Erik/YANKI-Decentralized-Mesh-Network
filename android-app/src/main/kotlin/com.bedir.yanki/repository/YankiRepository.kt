@@ -379,6 +379,8 @@ class YankiRepository @Inject constructor(
     // ==========================================
     suspend fun saveEmergencySignal(signal: EmergencySignalEntity) = emergencySignalDao.insertSignal(signal)
     suspend fun getAllSignals() = emergencySignalDao.getAllSignals()
+    fun getAllSosSignalsFlow() = emergencySignalDao.getAllSignalsFlow()
+    fun getMySosSignalsFlow() = emergencySignalDao.getMySignalsFlow(currentUserId)
 
     suspend fun sendEmergencySignal(type: String, lat: Double, lon: Double, battery: Int) {
         val myProfile = userDao.getUserById(currentUserId)
@@ -417,7 +419,9 @@ class YankiRepository @Inject constructor(
 
     suspend fun handleEmergencySignal(signal: EmergencySignalEntity) {
         if (emergencySignalDao.isSignalExists(signal.signal_id)) return
-        emergencySignalDao.insertSignal(signal)
+        // Hop count'u artırarak kaydet: bu cihaza ulaşmak için kaç relay geçildiğini gösterir
+        val signalToStore = signal.copy(hop_count = signal.hop_count + 1)
+        emergencySignalDao.insertSignal(signalToStore)
         
         // SOS bildirimi göster
         notificationHelper.showSOSNotification(signal)

@@ -227,6 +227,16 @@ class MeshViewModel @Inject constructor(
     private val _sosEvent = MutableSharedFlow<String>()
     val sosEvent: SharedFlow<String> = _sosEvent.asSharedFlow()
 
+    // Tüm aktif SOS sinyalleri (ağdan gelenler dahil) - canlı hop takibi için
+    val allSosSignals: StateFlow<List<com.bedir.yanki.data.local.entity.EmergencySignalEntity>> =
+        repository.getAllSosSignalsFlow()
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    // Sadece benim gönderdiğim sinyaller
+    val mySosSignals: StateFlow<List<com.bedir.yanki.data.local.entity.EmergencySignalEntity>> =
+        repository.getMySosSignalsFlow()
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
     fun sendEmergencySOS(type: String, lat: Double, lon: Double, battery: Int) {
         viewModelScope.launch(Dispatchers.IO) {
             try {
