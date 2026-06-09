@@ -6,7 +6,6 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ExitToApp
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
@@ -33,55 +32,12 @@ import com.bedir.yanki.ui.viewmodel.MeshViewModel
 @Composable
 fun ProfileScreen(navController: NavController, viewModel: MeshViewModel) {
     val currentUser by viewModel.currentUser.collectAsState()
-    var showLogoutDialog by remember { mutableStateOf(false) }
     var showResetDialog by remember { mutableStateOf(false) }
 
     fun navigateToWelcome() {
         navController.navigate(Screen.Welcome.route) {
             popUpTo(0) { inclusive = true }
         }
-    }
-
-    // --- ÇIKIŞ ONAYI DİALOGU ---
-    if (showLogoutDialog) {
-        AlertDialog(
-            onDismissRequest = { showLogoutDialog = false },
-            title = { Text("Çıkış Yap", fontWeight = FontWeight.Bold) },
-            text = {
-                Text("Ne yapmak istiyorsunuz?")
-            },
-            confirmButton = {
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Button(
-                        onClick = {
-                            showLogoutDialog = false
-                            viewModel.logout { navigateToWelcome() }
-                        },
-                        modifier = Modifier.fillMaxWidth(),
-                        colors = ButtonDefaults.buttonColors(containerColor = YankiDarkBg)
-                    ) {
-                        Text("Oturumu Kapat", color = Color.White)
-                    }
-                    OutlinedButton(
-                        onClick = {
-                            showLogoutDialog = false
-                            showResetDialog = true
-                        },
-                        modifier = Modifier.fillMaxWidth(),
-                        colors = ButtonDefaults.outlinedButtonColors(contentColor = Color.Red)
-                    ) {
-                        Text("Cihazı Sıfırla (Tüm veriyi sil)")
-                    }
-                    TextButton(
-                        onClick = { showLogoutDialog = false },
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Text("İptal", color = Color.Gray)
-                    }
-                }
-            },
-            dismissButton = {}
-        )
     }
 
     // --- SIFIRLAMA ONAYI DİALOGU ---
@@ -193,7 +149,7 @@ fun ProfileScreen(navController: NavController, viewModel: MeshViewModel) {
                 fontWeight = FontWeight.Bold,
                 modifier = Modifier.padding(start = 8.dp, bottom = 8.dp)
             )
-            
+
             ProfileMenuItem(
                 icon = Icons.Default.FavoriteBorder,
                 title = "Sağlık bilgileri",
@@ -219,7 +175,7 @@ fun ProfileScreen(navController: NavController, viewModel: MeshViewModel) {
                 iconBg = YankiDarkBg,
                 onClick = { navController.navigate(Screen.Settings.route) }
             )
-            
+
             ProfileMenuItem(
                 icon = Icons.Default.Warning,
                 title = "Cihazı sıfırla",
@@ -228,16 +184,6 @@ fun ProfileScreen(navController: NavController, viewModel: MeshViewModel) {
                 iconColor = Color.Red,
                 titleColor = Color.Red,
                 onClick = { showResetDialog = true }
-            )
-
-            Spacer(modifier = Modifier.height(24.dp))
-
-            ProfileMenuItem(
-                icon = Icons.AutoMirrored.Filled.ExitToApp,
-                title = "Çıkış Yap",
-                subtitle = "Oturumu kapat veya cihazı sıfırla",
-                iconBg = YankiDarkBg,
-                onClick = { showLogoutDialog = true }
             )
         }
     }
@@ -291,14 +237,14 @@ fun ProfileMenuItem(
             ) {
                 Icon(imageVector = icon, contentDescription = null, tint = iconColor, modifier = Modifier.size(20.dp))
             }
-            
+
             Spacer(modifier = Modifier.width(16.dp))
-            
+
             Column(modifier = Modifier.weight(1f)) {
                 Text(text = title, fontWeight = FontWeight.Bold, color = titleColor)
                 Text(text = subtitle, color = Color.Gray, fontSize = 12.sp)
             }
-            
+
             Icon(
                 imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
                 contentDescription = null,
