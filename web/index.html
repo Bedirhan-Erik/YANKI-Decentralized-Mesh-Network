@@ -557,8 +557,7 @@
         const kanGrubu = d.blood_type || "–";
         const alerji = d.allergies || "–";
         const ilac = d.medications || "–";
-        const yakinNo = d.emergency_contact || "–";
-        const saglikVar = d.blood_type || d.allergies || d.medications || d.emergency_contact;
+        const saglikVar = d.blood_type || d.allergies || d.medications;
 
         const tr = document.createElement("tr");
         tr.innerHTML = `
@@ -583,8 +582,7 @@
               <hr style="margin: 5px 0; border: 0; border-top: 1px solid #eee;">
               🩸 Kan Grubu: <strong>${kanGrubu}</strong><br>
               💊 Kullandığı İlaçlar: <strong>${ilac}</strong><br>
-              ⚠️ Alerjiler: <strong>${alerji}</strong><br>
-              📞 Yakın Kişi: <strong>${yakinNo}</strong>
+              ⚠️ Alerjiler: <strong>${alerji}</strong>
             </div>
           `);
         }
