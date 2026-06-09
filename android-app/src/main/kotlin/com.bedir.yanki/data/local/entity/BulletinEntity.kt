@@ -15,5 +15,6 @@ data class BulletinEntity(
     val latitude: Double,
     val longitude: Double,
     val ttl: Int,
+    val hop_count: Int = 0,
     val is_synced: Boolean = false
 )

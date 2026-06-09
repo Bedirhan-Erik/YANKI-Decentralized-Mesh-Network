@@ -12,45 +12,12 @@
     <list default="true" id="7b4b2efb-e797-422d-b874-9627a0cb36a3" name="Changes" comment="current">
       <change beforePath="$PROJECT_DIR$/.gradle/buildOutputCleanup/buildOutputCleanup.lock" beforeDir="false" afterPath="$PROJECT_DIR$/.gradle/buildOutputCleanup/buildOutputCleanup.lock" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/android-app/build.gradle.kts" beforeDir="false" afterPath="$PROJECT_DIR$/android-app/build.gradle.kts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/android-app/src/main/AndroidManifest.xml" beforeDir="false" afterPath="$PROJECT_DIR$/android-app/src/main/AndroidManifest.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/android-app/src/main/kotlin/com.bedir.yanki/MainActivity.kt" beforeDir="false" afterPath="$PROJECT_DIR$/android-app/src/main/kotlin/com.bedir.yanki/MainActivity.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/android-app/src/main/kotlin/com.bedir.yanki/data/local/YankiDatabase.kt" beforeDir="false" afterPath="$PROJECT_DIR$/android-app/src/main/kotlin/com.bedir.yanki/data/local/YankiDatabase.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/android-app/src/main/kotlin/com.bedir.yanki/data/local/dao/EmergencySignalDao.kt" beforeDir="false" afterPath="$PROJECT_DIR$/android-app/src/main/kotlin/com.bedir.yanki/data/local/dao/EmergencySignalDao.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/android-app/src/main/kotlin/com.bedir.yanki/data/local/dao/MessageDao.kt" beforeDir="false" afterPath="$PROJECT_DIR$/android-app/src/main/kotlin/com.bedir.yanki/data/local/dao/MessageDao.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/android-app/src/main/kotlin/com.bedir.yanki/data/local/dao/UserDao.kt" beforeDir="false" afterPath="$PROJECT_DIR$/android-app/src/main/kotlin/com.bedir.yanki/data/local/dao/UserDao.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/android-app/src/main/kotlin/com.bedir.yanki/data/local/entity/EmergencySignalEntity.kt" beforeDir="false" afterPath="$PROJECT_DIR$/android-app/src/main/kotlin/com.bedir.yanki/data/local/entity/EmergencySignalEntity.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/android-app/src/main/kotlin/com.bedir.yanki/data/local/entity/MessageEntity.kt" beforeDir="false" afterPath="$PROJECT_DIR$/android-app/src/main/kotlin/com.bedir.yanki/data/local/entity/MessageEntity.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/android-app/src/main/kotlin/com.bedir.yanki/data/local/entity/UserEntity.kt" beforeDir="false" afterPath="$PROJECT_DIR$/android-app/src/main/kotlin/com.bedir.yanki/data/local/entity/UserEntity.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/android-app/src/main/kotlin/com.bedir.yanki/data/local/entity/BulletinEntity.kt" beforeDir="false" afterPath="$PROJECT_DIR$/android-app/src/main/kotlin/com.bedir.yanki/data/local/entity/BulletinEntity.kt" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/android-app/src/main/kotlin/com.bedir.yanki/data/mapper/ProtoMapper.kt" beforeDir="false" afterPath="$PROJECT_DIR$/android-app/src/main/kotlin/com.bedir.yanki/data/mapper/ProtoMapper.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/android-app/src/main/kotlin/com.bedir.yanki/data/remote/mesh/connectivity/BleMeshManager.kt" beforeDir="false" afterPath="$PROJECT_DIR$/android-app/src/main/kotlin/com.bedir.yanki/data/remote/mesh/connectivity/BleMeshManager.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/android-app/src/main/kotlin/com.bedir.yanki/data/remote/mesh/connectivity/WifiAwareManager.kt" beforeDir="false" afterPath="$PROJECT_DIR$/android-app/src/main/kotlin/com.bedir.yanki/data/remote/mesh/connectivity/WifiAwareManager.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/android-app/src/main/kotlin/com.bedir.yanki/data/remote/sync/SyncWorker.kt" beforeDir="false" afterPath="$PROJECT_DIR$/android-app/src/main/kotlin/com.bedir.yanki/data/remote/sync/SyncWorker.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/android-app/src/main/kotlin/com.bedir.yanki/di/DatabaseModule.kt" beforeDir="false" afterPath="$PROJECT_DIR$/android-app/src/main/kotlin/com.bedir.yanki/di/DatabaseModule.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/android-app/src/main/kotlin/com.bedir.yanki/di/NetworkModule.kt" beforeDir="false" afterPath="$PROJECT_DIR$/android-app/src/main/kotlin/com.bedir.yanki/di/NetworkModule.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/android-app/src/main/kotlin/com.bedir.yanki/repository/YankiRepository.kt" beforeDir="false" afterPath="$PROJECT_DIR$/android-app/src/main/kotlin/com.bedir.yanki/repository/YankiRepository.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/android-app/src/main/kotlin/com.bedir.yanki/security/SecurityManager.kt" beforeDir="false" afterPath="$PROJECT_DIR$/android-app/src/main/kotlin/com.bedir.yanki/security/SecurityManager.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/android-app/src/main/kotlin/com.bedir.yanki/services/MeshService.kt" beforeDir="false" afterPath="$PROJECT_DIR$/android-app/src/main/kotlin/com.bedir.yanki/services/MeshService.kt" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/android-app/src/main/kotlin/com.bedir.yanki/ui/bulletin/BulletinBoardScreen.kt" beforeDir="false" afterPath="$PROJECT_DIR$/android-app/src/main/kotlin/com.bedir.yanki/ui/bulletin/BulletinBoardScreen.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/android-app/src/main/kotlin/com.bedir.yanki/ui/main/MainDashboard.kt" beforeDir="false" afterPath="$PROJECT_DIR$/android-app/src/main/kotlin/com.bedir.yanki/ui/main/MainDashboard.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/android-app/src/main/kotlin/com.bedir.yanki/ui/navigation/MainScreen.kt" beforeDir="false" afterPath="$PROJECT_DIR$/android-app/src/main/kotlin/com.bedir.yanki/ui/navigation/MainScreen.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/android-app/src/main/kotlin/com.bedir.yanki/ui/navigation/Screen.kt" beforeDir="false" afterPath="$PROJECT_DIR$/android-app/src/main/kotlin/com.bedir.yanki/ui/navigation/Screen.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/android-app/src/main/kotlin/com.bedir.yanki/ui/navigation/YankiBottomBar.kt" beforeDir="false" afterPath="$PROJECT_DIR$/android-app/src/main/kotlin/com.bedir.yanki/ui/navigation/YankiBottomBar.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/android-app/src/main/kotlin/com.bedir.yanki/ui/permissions/PermissionConstants.kt" beforeDir="false" afterPath="$PROJECT_DIR$/android-app/src/main/kotlin/com.bedir.yanki/ui/permissions/PermissionConstants.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/android-app/src/main/kotlin/com.bedir.yanki/ui/profile/HealthDetailScreen.kt" beforeDir="false" afterPath="$PROJECT_DIR$/android-app/src/main/kotlin/com.bedir.yanki/ui/profile/HealthDetailScreen.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/android-app/src/main/kotlin/com.bedir.yanki/ui/profile/ProfileScreen.kt" beforeDir="false" afterPath="$PROJECT_DIR$/android-app/src/main/kotlin/com.bedir.yanki/ui/profile/ProfileScreen.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/android-app/src/main/kotlin/com.bedir.yanki/ui/profile/SettingsScreen.kt" beforeDir="false" afterPath="$PROJECT_DIR$/android-app/src/main/kotlin/com.bedir.yanki/ui/profile/SettingsScreen.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/android-app/src/main/kotlin/com.bedir.yanki/ui/radar/RadarView.kt" beforeDir="false" afterPath="$PROJECT_DIR$/android-app/src/main/kotlin/com.bedir.yanki/ui/radar/RadarView.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/android-app/src/main/kotlin/com.bedir.yanki/ui/registration/LoginScreen.kt" beforeDir="false" afterPath="$PROJECT_DIR$/android-app/src/main/kotlin/com.bedir.yanki/ui/registration/LoginScreen.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/android-app/src/main/kotlin/com.bedir.yanki/ui/registration/RegisterStep1Screen.kt" beforeDir="false" afterPath="$PROJECT_DIR$/android-app/src/main/kotlin/com.bedir.yanki/ui/registration/RegisterStep1Screen.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/android-app/src/main/kotlin/com.bedir.yanki/ui/registration/RegisterStep2Screen.kt" beforeDir="false" afterPath="$PROJECT_DIR$/android-app/src/main/kotlin/com.bedir.yanki/ui/registration/RegisterStep2Screen.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/android-app/src/main/kotlin/com.bedir.yanki/ui/messages/MessagesListScreen.kt" beforeDir="false" afterPath="$PROJECT_DIR$/android-app/src/main/kotlin/com.bedir.yanki/ui/messages/MessagesListScreen.kt" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/android-app/src/main/kotlin/com.bedir.yanki/ui/registration/RegisterStep3Screen.kt" beforeDir="false" afterPath="$PROJECT_DIR$/android-app/src/main/kotlin/com.bedir.yanki/ui/registration/RegisterStep3Screen.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/android-app/src/main/kotlin/com.bedir.yanki/ui/viewmodel/MeshViewModel.kt" beforeDir="false" afterPath="$PROJECT_DIR$/android-app/src/main/kotlin/com.bedir.yanki/ui/viewmodel/MeshViewModel.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/android-app/src/main/kotlin/com.bedir.yanki/ui/viewmodel/registration/RegistrationViewModel.kt" beforeDir="false" afterPath="$PROJECT_DIR$/android-app/src/main/kotlin/com.bedir.yanki/ui/viewmodel/registration/RegistrationViewModel.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/android-app/src/main/kotlin/com.bedir.yanki/util/NotificationHelper.kt" beforeDir="false" afterPath="$PROJECT_DIR$/android-app/src/main/kotlin/com.bedir.yanki/util/NotificationHelper.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend-server/server.js" beforeDir="false" afterPath="$PROJECT_DIR$/backend-server/server.js" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/protocols/yanki.proto" beforeDir="false" afterPath="$PROJECT_DIR$/protocols/yanki.proto" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/web/index.html" beforeDir="false" afterPath="$PROJECT_DIR$/web/index.html" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -60,7 +27,7 @@
   <component name="ClangdSettings">
     <option name="formatViaClangd" value="false" />
   </component>
-  <component name="ExecutionTargetManager" SELECTED_TARGET="device_and_snapshot_combo_box_target[PhysicalDevice::serial=RF8MA0Q4X0M]" />
+  <component name="ExecutionTargetManager" SELECTED_TARGET="device_and_snapshot_combo_box_target[LocalEmulator::path=C:\Users\bedir\.android\avd\Pixel_7.avd]" />
   <component name="ExternalProjectsData">
     <projectState path="$PROJECT_DIR$">
       <ProjectState />
@@ -123,7 +90,7 @@
     &quot;cf.first.check.clang-format&quot;: &quot;false&quot;,
     &quot;cidr.known.project.marker&quot;: &quot;true&quot;,
     &quot;com.google.services.firebase.aqiPopupShown&quot;: &quot;true&quot;,
-    &quot;git-widget-placeholder&quot;: &quot;claude/explore-repo-mE1Az&quot;,
+    &quot;git-widget-placeholder&quot;: &quot;master&quot;,
     &quot;kotlin-language-version-configured&quot;: &quot;true&quot;,
     &quot;project.structure.last.edited&quot;: &quot;Modules&quot;,
     &quot;project.structure.proportion&quot;: &quot;0.17&quot;,

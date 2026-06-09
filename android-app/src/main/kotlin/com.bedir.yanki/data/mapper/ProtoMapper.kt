@@ -25,6 +25,7 @@ object ProtoMapper {
             .setLatitude(entity.latitude)
             .setLongitude(entity.longitude)
             .setTtl(entity.ttl)
+            .setHopCount(entity.hop_count)
             .build()
     }
 
@@ -39,6 +40,7 @@ object ProtoMapper {
             latitude = proto.latitude,
             longitude = proto.longitude,
             ttl = proto.ttl,
+            hop_count = proto.hopCount,
             is_synced = false
         )
     }
@@ -262,6 +264,7 @@ object ProtoMapper {
                     latitude = proto.latitude,
                     longitude = proto.longitude,
                     ttl = proto.ttl,
+                    hop_count = proto.hopCount,
                     is_synced = false
                 )
             }

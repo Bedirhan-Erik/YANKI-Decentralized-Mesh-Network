@@ -63,6 +63,7 @@ message BulletinPost {
   double latitude = 7;
   double longitude = 8;
   int32 ttl = 9;
+  int32 hop_count = 10;
 }
 
 // Wi-Fi Aware ve Mesh için toplu paket taşıyıcı

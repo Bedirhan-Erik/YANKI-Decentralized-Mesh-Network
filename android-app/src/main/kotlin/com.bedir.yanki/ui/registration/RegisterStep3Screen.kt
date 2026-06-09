@@ -21,7 +21,7 @@ import com.bedir.yanki.ui.theme.YankiGreen
 import com.bedir.yanki.ui.viewmodel.registration.RegistrationViewModel
 import kotlinx.coroutines.launch
 
-private const val PHONE_MAX = 15
+private const val PHONE_MAX = 12
 
 private fun filterPhone(input: String): String {
     if (input.isEmpty()) return input

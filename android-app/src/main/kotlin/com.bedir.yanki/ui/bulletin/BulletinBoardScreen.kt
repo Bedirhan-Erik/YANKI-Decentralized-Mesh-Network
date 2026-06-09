@@ -180,7 +180,7 @@ fun BulletinItem(bulletin: BulletinEntity) {
                     )
                 }
                 Text(
-                    text = "${bulletin.ttl} Hop",
+                    text = "${bulletin.hop_count} Hop",
                     fontSize = 12.sp,
                     color = YankiGreyDot,
                     fontWeight = FontWeight.Medium

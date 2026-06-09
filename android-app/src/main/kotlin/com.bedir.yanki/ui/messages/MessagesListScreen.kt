@@ -270,7 +270,7 @@ fun ChatListItem(neighbor: UserEntity, viewModel: MeshViewModel, onClick: () -> 
         }
     }
 
-    HorizontalDivider(
+    Divider(
         modifier = Modifier.padding(start = 72.dp),
         color = Color(0xFF1B232E),
         thickness = 1.dp
