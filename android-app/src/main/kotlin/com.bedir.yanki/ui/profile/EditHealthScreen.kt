@@ -7,6 +7,7 @@ import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.*
@@ -15,6 +16,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewModelScope
@@ -24,6 +26,23 @@ import com.bedir.yanki.ui.theme.YankiDarkBg
 import com.bedir.yanki.ui.theme.YankiGreen
 import com.bedir.yanki.ui.viewmodel.MeshViewModel
 import kotlinx.coroutines.launch
+
+private const val HEALTH_MAX = 150
+private const val PHONE_MAX = 15
+
+private fun filterPhone(input: String): String {
+    if (input.isEmpty()) return input
+    return if (input.startsWith("+")) {
+        "+" + input.drop(1).filter { it.isDigit() }
+    } else {
+        input.filter { it.isDigit() }
+    }.take(PHONE_MAX)
+}
+
+private fun isValidPhone(phone: String): Boolean {
+    val digits = phone.replace("+", "")
+    return digits.length >= 10 && digits.all { it.isDigit() }
+}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -54,6 +73,15 @@ fun EditHealthScreen(
         "medications" -> "İlaçlar"
         "emergency_contact" -> "Acil İletişim"
         else -> "Düzenle"
+    }
+
+    val isPhoneField = type == "emergency_contact"
+    val phoneError = isPhoneField && value.isNotBlank() && !isValidPhone(value)
+
+    val isSaveEnabled = when {
+        type == "blood_type" -> value.isNotBlank()
+        isPhoneField -> isValidPhone(value) || value.isBlank()
+        else -> true
     }
 
     Scaffold(
@@ -108,11 +136,49 @@ fun EditHealthScreen(
                         }
                     }
                 }
+            } else if (isPhoneField) {
+                OutlinedTextField(
+                    value = value,
+                    onValueChange = { value = filterPhone(it) },
+                    label = { Text(title) },
+                    placeholder = { Text("+90 5XX XXX XX XX", color = Color.Gray) },
+                    singleLine = true,
+                    isError = phoneError,
+                    supportingText = {
+                        if (phoneError) {
+                            Text(
+                                "Geçerli bir telefon numarası girin (en az 10 rakam)",
+                                color = MaterialTheme.colorScheme.error,
+                                fontSize = 11.sp
+                            )
+                        } else {
+                            Text(
+                                "${value.replace("+", "").length} rakam",
+                                color = Color.Gray,
+                                fontSize = 11.sp
+                            )
+                        }
+                    },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(12.dp)
+                )
+                Spacer(modifier = Modifier.weight(1f))
             } else {
                 OutlinedTextField(
                     value = value,
-                    onValueChange = { value = it },
+                    onValueChange = { if (it.length <= HEALTH_MAX) value = it },
                     label = { Text(title) },
+                    maxLines = 4,
+                    supportingText = {
+                        Text(
+                            text = "${value.length}/$HEALTH_MAX",
+                            color = Color.Gray,
+                            fontSize = 11.sp,
+                            modifier = Modifier.fillMaxWidth(),
+                            textAlign = androidx.compose.ui.text.style.TextAlign.End
+                        )
+                    },
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(12.dp)
                 )
@@ -135,7 +201,8 @@ fun EditHealthScreen(
                     .fillMaxWidth()
                     .height(56.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = YankiGreen),
-                shape = RoundedCornerShape(12.dp)
+                shape = RoundedCornerShape(12.dp),
+                enabled = isSaveEnabled
             ) {
                 Text("Kaydet", color = YankiDarkBg, fontWeight = FontWeight.Bold)
             }

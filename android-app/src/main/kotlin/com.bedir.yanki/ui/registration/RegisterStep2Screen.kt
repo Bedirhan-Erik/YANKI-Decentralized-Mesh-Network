@@ -25,6 +25,8 @@ import com.bedir.yanki.ui.theme.YankiDarkBg
 import com.bedir.yanki.ui.theme.YankiGreen
 import com.bedir.yanki.ui.viewmodel.registration.RegistrationViewModel
 
+private val HEALTH_TEXT_MAX = 150
+
 @Composable
 fun RegisterStep2Screen(
     navController: NavController,
@@ -98,8 +100,19 @@ fun RegisterStep2Screen(
 
         OutlinedTextField(
             value = viewModel.allergies,
-            onValueChange = { viewModel.allergies = it },
+            onValueChange = { if (it.length <= HEALTH_TEXT_MAX) viewModel.allergies = it },
             label = { Text("Alerjiler (Opsiyonel)") },
+            placeholder = { Text("Örn: Penisilin, fıstık", color = Color.Gray) },
+            maxLines = 3,
+            supportingText = {
+                Text(
+                    text = "${viewModel.allergies.length}/$HEALTH_TEXT_MAX",
+                    color = Color.Gray,
+                    fontSize = 11.sp,
+                    modifier = Modifier.fillMaxWidth(),
+                    textAlign = androidx.compose.ui.text.style.TextAlign.End
+                )
+            },
             modifier = Modifier.fillMaxWidth(),
             colors = OutlinedTextFieldDefaults.colors(
                 unfocusedTextColor = Color.White,
@@ -111,12 +124,23 @@ fun RegisterStep2Screen(
             )
         )
 
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(8.dp))
 
         OutlinedTextField(
             value = viewModel.medications,
-            onValueChange = { viewModel.medications = it },
+            onValueChange = { if (it.length <= HEALTH_TEXT_MAX) viewModel.medications = it },
             label = { Text("Düzenli İlaçlar (Opsiyonel)") },
+            placeholder = { Text("Örn: Metformin 500mg", color = Color.Gray) },
+            maxLines = 3,
+            supportingText = {
+                Text(
+                    text = "${viewModel.medications.length}/$HEALTH_TEXT_MAX",
+                    color = Color.Gray,
+                    fontSize = 11.sp,
+                    modifier = Modifier.fillMaxWidth(),
+                    textAlign = androidx.compose.ui.text.style.TextAlign.End
+                )
+            },
             modifier = Modifier.fillMaxWidth(),
             colors = OutlinedTextFieldDefaults.colors(
                 unfocusedTextColor = Color.White,
@@ -133,7 +157,9 @@ fun RegisterStep2Screen(
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             OutlinedButton(
                 onClick = { navController.popBackStack() },
-                modifier = Modifier.weight(1f).height(56.dp),
+                modifier = Modifier
+                    .weight(1f)
+                    .height(56.dp),
                 border = androidx.compose.foundation.BorderStroke(1.dp, YankiGreen),
                 shape = MaterialTheme.shapes.medium
             ) {
@@ -141,10 +167,10 @@ fun RegisterStep2Screen(
             }
 
             Button(
-                onClick = { 
-                    navController.navigate(Screen.RegisterStep3.route)
-                },
-                modifier = Modifier.weight(2f).height(56.dp),
+                onClick = { navController.navigate(Screen.RegisterStep3.route) },
+                modifier = Modifier
+                    .weight(2f)
+                    .height(56.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = YankiGreen),
                 enabled = viewModel.bloodType.isNotEmpty()
             ) {
