@@ -553,6 +553,9 @@ class YankiRepository @Inject constructor(
                                     userDao.insertOrUpdateUser(user.copy(
                                         last_mac = existing.last_mac ?: senderMac,
                                         last_rssi = existing.last_rssi,
+                                        // Gelen veri boşsa mevcut ismi koru
+                                        username = if (!user.username.isNullOrBlank()) user.username else existing.username,
+                                        full_name = if (!user.full_name.isNullOrBlank()) user.full_name else existing.full_name,
                                         blood_type = existing.blood_type ?: user.blood_type,
                                         allergies = existing.allergies ?: user.allergies,
                                         medications = existing.medications ?: user.medications,

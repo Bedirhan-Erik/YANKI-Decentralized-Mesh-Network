@@ -175,8 +175,8 @@ object ProtoMapper {
     fun fromProto(proto: com.bedir.yanki.Yanki.User): UserEntity {
         return UserEntity(
             user_id = proto.userId,
-            username = proto.userName,
-            full_name = proto.userName,
+            username = proto.userName.ifBlank { null },
+            full_name = proto.userName.ifBlank { null },
             public_key = proto.publicKey.toByteArray(),
             last_seen = proto.lastSeen,
             is_trusted = proto.isTrusted,
@@ -241,8 +241,8 @@ object ProtoMapper {
             val receivedUsers = payload.usersList.map { proto ->
                 UserEntity(
                     user_id = proto.userId,
-                    username = proto.userName,
-                    full_name = proto.userName,
+                    username = proto.userName.ifBlank { null },
+                    full_name = proto.userName.ifBlank { null },
                     public_key = proto.publicKey.toByteArray(),
                     last_seen = proto.lastSeen,
                     is_trusted = proto.isTrusted,
