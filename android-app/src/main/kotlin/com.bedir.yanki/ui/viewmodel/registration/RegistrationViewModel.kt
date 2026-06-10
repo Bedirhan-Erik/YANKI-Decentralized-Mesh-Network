@@ -30,10 +30,14 @@ class RegistrationViewModel @Inject constructor(
     suspend fun completeRegistration() {
         // Anahtarların oluşturulduğundan emin olalım
         repository.ensureUserKeys()
-        
+
+        val now = System.currentTimeMillis()
+        // Anahtar üretim tarihini kaydet (ayarlar ekranında gösterilir)
+        repository.sharedPreferences.edit().putLong("key_generated_at", now).apply()
+
         val pubKeyHex = repository.sharedPreferences.getString("public_key", "") ?: ""
         generatedPublicKey = pubKeyHex
-        registrationTimestamp = System.currentTimeMillis()
+        registrationTimestamp = now
 
         val newUser = UserEntity(
             user_id = UUID.randomUUID().toString(),

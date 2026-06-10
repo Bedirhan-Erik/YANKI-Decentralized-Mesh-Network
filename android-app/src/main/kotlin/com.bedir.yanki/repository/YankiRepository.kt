@@ -304,9 +304,10 @@ class YankiRepository @Inject constructor(
             val newPublic = keyPair?.publicKey?.asBytes ?: ByteArray(32)
             
             try {
-                sharedPreferences.edit { 
+                sharedPreferences.edit {
                     putString("secret_key", java.util.Base64.getEncoder().encodeToString(newSecret))
                     putString("public_key", java.util.Base64.getEncoder().encodeToString(newPublic))
+                    putLong("key_generated_at", System.currentTimeMillis())
                 }
             } catch (e: Exception) {
                 Log.e("YANKI_REPO", "Anahtarlar kaydedilemedi")
