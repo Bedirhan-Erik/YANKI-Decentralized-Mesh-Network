@@ -102,8 +102,8 @@ Bu proje **Ege Üniversitesi Ege Meslek Yüksekokulu Bilgisayar Programcılığ�
 |---|---|---|
 | **Bedirhan Erik** | [@Bedirhan-Erik](https://github.com/Bedirhan-Erik) | [LinkedIn](https://www.linkedin.com/in/bedirhan-erik-842295228/) |
 | **Fatih Polat** | [@fatihspy](https://github.com/fatihspy) | [LinkedIn](https://www.linkedin.com/in/fatih-polat-5069a6289/) |
-| **Ahmet Özer** | — | — |
-| **Yusuf Demirhan** | — | — |
+| **Ahmet Özer** | [@ysfdmrhn](https://github.com/ysfdmrhn) | — |
+| **Yusuf Demirhan** | — | [LinkedIn](https://www.linkedin.com/in/ahmet-%C3%B6zer-698b3a283/) |
 
 ## 📄 Lisans
 
