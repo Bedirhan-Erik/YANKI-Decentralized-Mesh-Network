@@ -34,16 +34,6 @@ Uygulama; **Bluetooth Low Energy (BLE)** ve **Wi-Fi Aware (NAN)** teknolojilerin
 - **Hibrit bulut senkronizasyonu:** İnternet erişimi olan düğüm, verileri Firebase'e aktarır.
 - **Gossip protokolü:** TTL/hop tabanlı, merkezi koordinasyon gerektirmeyen veri yayılımı.
 
-## 📱 Ekran Görüntüleri
-
-<!-- Buraya ekran görüntülerini ekleyebilirsin. Örnek:
-<p align="center">
-  <img src="ekran-goruntuleri/acilsinyal.jpeg" width="250" />
-  <img src="ekran-goruntuleri/komsu-haritasi.jpeg" width="250" />
-  <img src="ekran-goruntuleri/duyuru-panosu.jpeg" width="250" />
-</p>
--->
-
 ## 🏗️ Sistem Mimarisi
 
 YANKI üç katmanlı bir mimari üzerine kuruludur:
