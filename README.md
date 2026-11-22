@@ -91,10 +91,24 @@ Bu proje **Ege Üniversitesi Ege Meslek Yüksekokulu Bilgisayar Programcılığ�
 | Geliştirici | GitHub | LinkedIn |
 |---|---|---|
 | **Bedirhan Erik** | [@Bedirhan-Erik](https://github.com/Bedirhan-Erik) | [LinkedIn](https://www.linkedin.com/in/bedirhan-erik-842295228/) |
-| **Fatih Polat** | [@fatih-Polat](https://github.com/fatihspy) | [LinkedIn](https://www.linkedin.com/in/fatih-polat-5069a6289/) |
-| **Ahmet Özer** | [@Ahmet-Özer](https://github.com/asaf2112) |  [LinkedIn](https://www.linkedin.com/in/ahmet-%C3%B6zer-698b3a283/) |
-| **Yusuf Demirhan** | [@Yusuf-Demirhan](https://github.com/ysfdmrhn) | — |
+| **Fatih Polat** | [@fatihspy](https://github.com/fatihspy) | [LinkedIn](https://www.linkedin.com/in/fatih-polat-5069a6289/) |
+| **Ahmet Özer** | [@asaf2112](https://github.com/asaf2112) | [LinkedIn](https://www.linkedin.com/in/ahmet-%C3%B6zer-698b3a283/) |
+| **Yusuf Demirhan** | [@ysfdmrhn](https://github.com/ysfdmrhn) | — |
+
+## ⚙️ Kurulum
+
+**Android uygulaması**
+1. Repoyu klonlayın ve kök klasörü Android Studio ile açın (JDK 21 gerekir).
+2. Gradle senkronizasyonu bitince `android-app` modülünü çalıştırın; komut satırından: `./gradlew :android-app:assembleDebug`
+
+**Backend sunucusu**
+1. Firebase Console → Proje Ayarları → Hizmet Hesapları'ndan bir servis hesabı anahtarı indirip `backend-server/firebase-config.json` olarak kaydedin. Bu dosya gizlidir ve `.gitignore` ile repoya eklenmez; ekip içinde güvenli bir kanaldan paylaşın.
+2. `cd backend-server && npm install && npm start`
+
+**Web paneli:** `web/index.html` dosyasını tarayıcıda açmanız yeterlidir.
+
+> Not: `.proto` şeması hem `protocols/` (Android) hem `backend-server/protos/` (sunucu) altında bulunur; değişiklik yaparken iki dosyayı da güncel tutun.
 
 ## 📄 Lisans
 
-Bu proje MIT lisansı altında sunulmaktadır.
+Bu proje MIT lisansı altında sunulmaktadır. Ayrıntılar için [LICENSE](LICENSE) dosyasına bakın.

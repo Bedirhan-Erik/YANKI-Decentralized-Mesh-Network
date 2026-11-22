@@ -17,3 +17,10 @@ local.properties
 node_modules/
 package-lock.json
 backend-server/firebase-config.json
+
+# IDE / build çıktıları (repoya girmemeli)
+.idea/
+.gradle/
+build/
+**/build/
+.kotlin/

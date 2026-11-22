@@ -44,6 +44,7 @@ message EmergencySignal {
   string blood_type = 9;
   string allergies = 10;
   string medications = 11;
+  string emergency_contact = 13;
 }
 
 message BulletinPost {
